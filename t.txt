@@ -1,0 +1,108 @@
+<!-- Include stylesheet -->
+<link
+  href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css"
+  rel="stylesheet"
+/>
+
+<!-- Create the editor container -->
+<div id="editor">
+  <p>Hello World!</p>
+  <p>Some initial <strong>bold</strong> text</p>
+  <p><br /></p>
+</div>
+
+<!-- Include the Quill library -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.js"></script>
+
+<!-- Initialize Quill editor -->
+
+<script>
+  //Import Quill namespace dependencies
+  const BlockEmbed = Quill.import('blots/block/embed');
+
+  class CustomHtmlBlot extends BlockEmbed {
+    static create(value) {
+      let node = super.create();
+      // Create a container for both the text and the button
+      node.innerHTML = value.html;
+      return node;
+    }
+
+    static value(node) {
+      return {
+        html: node.innerHTML
+      };
+    }
+  }
+
+  CustomHtmlBlot.blotName = 'customHtml';
+  CustomHtmlBlot.tagName = 'div'; // Use a div to wrap the content
+  Quill.register(CustomHtmlBlot);
+
+  const Inline = Quill.import("blots/inline");
+
+  class EditableSpan extends Inline {
+    static create(value) {
+      let node = super.create();
+      node.setAttribute("contenteditable", true);
+      node.innerHTML = value;
+      return node;
+    }
+
+    static value(node) {
+      return node.innerHTML;
+    }
+  }
+
+  EditableSpan.blotName = "editableSpan";
+  EditableSpan.tagName = "div";
+
+  Quill.register(EditableSpan);
+
+  // Initialize Quill
+  const quill = new Quill("#editor", {
+    theme: "snow",
+    modules: {
+      toolbar: {
+        container: [
+          ["customHtmlButton"], // Custom button
+        ],
+        handlers: {
+          customHtmlButton: function () {
+            const htmlContent = "Custom HTML Content";
+            const buttonHtml =
+              "<div><button onclick=\"alert('Button clicked!')\">Click Me</button></div>";
+            const range = quill.getSelection(true);
+            if (range) {
+              quill.insertText(range.index, " ", Quill.sources.USER);
+              quill.insertEmbed(
+                range.index + 1,
+                "editableSpan",
+                htmlContent,
+                Quill.sources.USER
+              );
+              quill.insertEmbed(
+                range.index + htmlContent.length + 1,
+                "customHtml",
+                { html: buttonHtml },
+                Quill.sources.USER
+              );
+              quill.setSelection(
+                range.index + htmlContent.length + 2,
+                Quill.sources.SILENT
+              );
+            }
+          },
+        },
+      },
+    },
+  });
+
+  // Append the button to Quill's toolbar
+  const toolbar = quill.getModule("toolbar");
+  const buttonContainer = document.querySelector(".ql-toolbar");
+  const button = document.createElement("button");
+  button.innerHTML = "Add HTML";
+  button.onclick = () => toolbar.handlers.customHtmlButton();
+  buttonContainer.appendChild(button);
+</script>

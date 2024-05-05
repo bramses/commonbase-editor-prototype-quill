@@ -1,0 +1,107 @@
+<!-- Include stylesheet -->
+<link
+  href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css"
+  rel="stylesheet"
+/>
+
+<!-- Create the editor container -->
+<div id="editor">
+  <p>Hello World!</p>
+  <p>Some initial <strong>bold</strong> text</p>
+  <p><br /></p>
+</div>
+
+<!-- Include the Quill library -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.js"></script>
+
+<!-- Initialize Quill editor -->
+
+<script>
+  //Import Quill namespace dependencies
+  const BlockEmbed = Quill.import("blots/block/embed");
+  const Inline = Quill.import("blots/inline");
+
+  class EditableSpan extends Inline {
+    static create(value) {
+      let node = super.create();
+      node.setAttribute("contenteditable", true);
+      node.innerHTML = value;
+      return node;
+    }
+
+    static value(node) {
+      return node.innerHTML;
+    }
+  }
+
+  EditableSpan.blotName = "editableSpan";
+  EditableSpan.tagName = "span"; // Use a span for the editable text
+  Quill.register(EditableSpan);
+
+  class CustomHtmlBlot extends BlockEmbed {
+    static create(value) {
+      let node = super.create();
+      node.innerHTML = `<span class="editable-span">${value.text}</span>${value.buttonHtml}`;
+      return node;
+    }
+
+    static value(node) {
+      return {
+        text: node.querySelector(".editable-span").innerHTML,
+        buttonHtml: node.querySelector("div").outerHTML,
+      };
+    }
+  }
+
+  CustomHtmlBlot.blotName = "customHtml";
+  CustomHtmlBlot.tagName = "div"; // Use a div to wrap the content
+  Quill.register(CustomHtmlBlot);
+
+  // Initialize Quill
+  const quill = new Quill("#editor", {
+    theme: "snow",
+    modules: {
+      toolbar: {
+        container: [
+          ["customHtmlButton"], // Custom button
+        ],
+        handlers: {
+          customHtmlButton: function () {
+            const htmlContent = "Custom HTML Content";
+            const buttonHtml =
+              "<div><button onclick=\"alert('Button clicked!')\">Click Me</button></div>";
+            const range = quill.getSelection(true);
+            if (range) {
+              quill.insertEmbed(
+                range.index,
+                "customHtml",
+                { text: htmlContent, buttonHtml: buttonHtml },
+                Quill.sources.USER
+              );
+              quill.setSelection(range.index + 1, Quill.sources.SILENT);
+            }
+          },
+        },
+      },
+    },
+  });
+
+  quill.on("text-change", function (delta, oldDelta, source) {
+    const customHtmlBlots = document.querySelectorAll(".ql-customHtml");
+    customHtmlBlots.forEach((blot) => {
+      const textSpan = blot.querySelector(".editable-span");
+      if (textSpan && textSpan.innerHTML.trim() === "") {
+        const blotIndex = quill.getIndex(Quill.find(blot));
+        quill.deleteText(blotIndex, 1);
+      }
+    });
+  });
+
+  // Append the button to Quill's toolbar
+  const toolbar = quill.getModule("toolbar");
+  const buttonContainer = document.querySelector(".ql-toolbar");
+  const button = document.createElement("button");
+  button.innerHTML = "Add HTML";
+  button.onclick = () => toolbar.handlers.customHtmlButton();
+  buttonContainer.appendChild(button);
+</script>

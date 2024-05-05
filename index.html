@@ -1,0 +1,157 @@
+<!-- Include stylesheet -->
+<link
+  href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css"
+  rel="stylesheet"
+/>
+
+<!-- Create the editor container -->
+<div id="editor">
+  <p>Hello World!</p>
+  <p>Some initial <strong>bold</strong> text</p>
+  <p><br /></p>
+</div>
+
+<!-- Include the Quill library -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.js"></script>
+
+<!-- Initialize Quill editor -->
+
+<script>
+  //Import Quill namespace dependencies
+  const BlockEmbed = Quill.import("blots/block/embed");
+
+  class CustomHtmlBlot extends BlockEmbed {
+    static create(value) {
+      let node = super.create();
+      // Create a container for both the text and the button
+      node.innerHTML = value.html;
+      return node;
+    }
+
+    static value(node) {
+      return {
+        html: node.innerHTML,
+      };
+    }
+  }
+
+  CustomHtmlBlot.blotName = "customHtml";
+  CustomHtmlBlot.tagName = "div"; // Use a div to wrap the content
+  Quill.register(CustomHtmlBlot);
+
+  const Inline = Quill.import("blots/inline");
+
+  class EditableSpan extends Inline {
+    static create(value) {
+      let node = super.create();
+      node.setAttribute("id", value.id); // Set the ID attribute
+      node.innerHTML = value.content; // Set the inner HTML
+      console.log(node);
+      return node;
+    }
+
+    static value(node) {
+      return {
+        id: node.getAttribute("id"),
+        content: node.innerHTML,
+      };
+    }
+  }
+
+  //   class EditableSpan extends Inline {
+  //     static create(value) {
+  //       let node = super.create();
+  //       node.innerHTML = value;
+  //       return node;
+  //     }
+
+  //     static value(node) {
+  //       return { html: node.innerHTML };
+  //     }
+  //   }
+
+  EditableSpan.blotName = "editableSpan";
+  EditableSpan.className = "editable-span";
+  EditableSpan.tagName = "div";
+  Quill.register(EditableSpan);
+
+  // Initialize Quill
+  const quill = new Quill("#editor", {
+    theme: "snow",
+    modules: {
+      toolbar: {
+        container: [
+          ["customHtmlButton"], // Custom button
+        ],
+        handlers: {
+          customHtmlButton: function () {
+            const htmlContent = "Custom HTML Content";
+
+            const range = quill.getSelection(true);
+            if (range) {
+              const id = Math.random().toString(36).substring(7);
+              const buttonHtml = `<button id="btn-${id}" onclick=\"alert('Button clicked!')\">Click Me</button>`;
+              quill.insertText(range.index, " ", Quill.sources.USER);
+              quill.insertEmbed(
+                range.index + 1,
+                "editableSpan",
+                { id: `${id}`, content: htmlContent },
+                Quill.sources.USER
+              );
+              quill.insertEmbed(
+                range.index + htmlContent.length + 1,
+                "customHtml",
+                { html: buttonHtml },
+                Quill.sources.USER
+              );
+              quill.setSelection(
+                range.index + htmlContent.length + buttonHtml.length + 1,
+                Quill.sources.SILENT
+              );
+            }
+          },
+        },
+      },
+    },
+  });
+
+  // whenever text is changed log all the button ids
+  quill.on("text-change", function (delta, oldDelta, source) {
+    const buttonIds = [];
+    const sem = quill.getSemanticHTML();
+    // parse sem to get button ids
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(sem, "text/html");
+    const buttons = doc.querySelectorAll("button");
+    buttons.forEach((button) => {
+      buttonIds.push(button.id);
+    });
+    console.log(buttonIds);
+    // do the same for editable-span ids
+    const spans = doc.querySelectorAll(".editable-span")
+    const spanIds = [];
+    spans.forEach((span) => {
+      spanIds.push(span.id);
+    });
+
+    // if an id in buttons but not in spanIds, remove the button
+    buttonIds.forEach((buttonId) => {
+        const btnIdRm = buttonId.replace("btn-", "");
+      if (!spanIds.includes(btnIdRm)) { // Use includes on the array of ids
+        console.log("Removing button with id: ", btnIdRm);
+        const button = document.getElementById("btn-" + btnIdRm);
+        if (button) button.remove();
+      }
+    });
+
+
+  });
+
+  // Append the button to Quill's toolbar
+  const toolbar = quill.getModule("toolbar");
+  const buttonContainer = document.querySelector(".ql-toolbar");
+  const button = document.createElement("button");
+  button.innerHTML = "Add HTML";
+  button.onclick = () => toolbar.handlers.customHtmlButton();
+  buttonContainer.appendChild(button);
+</script>
