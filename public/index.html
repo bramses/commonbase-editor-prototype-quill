@@ -81,65 +81,22 @@
     Quill.register(EditableSpan);
 
     class BoxHTML extends BlockEmbed {
-      static deleteAt(index, length) {
-        console.log("Delete at", index, length);
-        // First, call the super method to handle the default deletion behavior
-        super.deleteAt(index, length);
-
-        // Get the editable span element
-        let editableSpan = this.domNode.querySelector(
-          'span[contenteditable="true"]'
-        );
-
-        // Check if the editable span is empty after the deletion
-        if (editableSpan.textContent.trim().length === 0) {
-          // If empty, remove the entire block embed
-          console.log("Removing the block embed");
-          this.remove();
-        } else {
-          // If not empty, update the data-text attribute
-          console.log("Updating the data-text attribute");
-          this.domNode.setAttribute("data-text", editableSpan.textContent);
-        }
-      }
       static create(value) {
         let node = super.create();
-
+        node.setAttribute("id", value.id); // Set the ID attribute
+        node.setAttribute("data-text", value.content); // Set the data-text attribute
+        node.setAttribute("contenteditable", "true"); // Make the div non-editable
         // Create a container div that includes both the editable text and the button
-        node.innerHTML = `<div style="display: flex; align-items: center;" contenteditable="true">
+        node.innerHTML = `<div style="display: flex; align-items: center;">
                         <span contenteditable="true" style="flex-grow: 1;">${value.content}</span>
                         <button onclick="alert('Button clicked! ${value.id}')">Click Me</button>
                       </div>`;
 
-        let observer = new MutationObserver((mutationsList) => {
-          for (let mutation of mutationsList) {
-            if (
-              mutation.type === "characterData" ||
-              mutation.type === "childList"
-            ) {
-              // Update the data-text attribute whenever there's a change in text content
-              let editableSpan = node.querySelector(
-                'span[contenteditable="true"]'
-              );
-              node.setAttribute("data-text", editableSpan.textContent);
-            }
-          }
-        });
-
-        // Observe both characterData and childList changes within the node and its descendants
-        observer.observe(node, {
-          characterData: true,
-          childList: true,
-          subtree: true,
-        });
-        node.setAttribute("data-text", value.content);
         return node;
       }
 
       static value(node) {
-        let text = node.getAttribute("data-text") || "";
         return {
-          text,
           content: node.querySelector('span[contenteditable="true"]').innerHTML,
           id: node.id,
         }; // Assuming ID is still relevant for your use case
@@ -166,37 +123,56 @@
               );
 
               const range = quill.getSelection(true);
+              console.log(range);
+              const text = quill.getText(range.index, range.length);
+              console.log(text);
+              fetch("http://localhost:3000/query", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  text: text,
+                }),
+              })
+                .then((res) => res.json())
+                .then((data) => console.log(data));
+
               if (range) {
-                const id = Math.random().toString(36).substring(7);
+                for (let i = 0; i < 3; i++) {
+                  const id = Math.random().toString(36).substring(7);
 
-                quill.insertEmbed(
-                  range.index,
-                  "boxHtml",
-                  {
-                    content: htmlContent,
-                    id: Math.random().toString(36).substring(7),
-                  },
-                  Quill.sources.USER
-                );
+                  // box html version
+                  // quill.insertEmbed(
+                  //   range.index,
+                  //   "boxHtml",
+                  //   {
+                  //     content: htmlContent,
+                  //     id: Math.random().toString(36).substring(7),
+                  //   },
+                  //   Quill.sources.USER
+                  // );
 
-                // const buttonHtml = `<button id="btn-${id}" onclick=\"alert('Button clicked! ${id}')\">Click Me</button>`;
-                // quill.insertText(range.index, " ", Quill.sources.USER);
-                // quill.insertEmbed(
-                //   range.index + 1,
-                //   "editableSpan",
-                //   { id: `${id}`, content: htmlContent },
-                //   Quill.sources.USER
-                // );
-                // quill.insertEmbed(
-                //   range.index + htmlContent.length + 1,
-                //   "customHtml",
-                //   { html: buttonHtml },
-                //   Quill.sources.USER
-                // );
-                // quill.setSelection(
-                //   range.index + htmlContent.length + buttonHtml.length + 1,
-                //   Quill.sources.SILENT
-                // );
+                  // editable span version
+                  const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent: ${range}')\">Click Me</button>`;
+                  quill.insertText(range.index, " ", Quill.sources.USER);
+                  quill.insertEmbed(
+                    range.index + 1,
+                    "editableSpan",
+                    { id: `${id}`, content: htmlContent },
+                    Quill.sources.USER
+                  );
+                  quill.insertEmbed(
+                    range.index + htmlContent.length + 1,
+                    "customHtml",
+                    { html: buttonHtml },
+                    Quill.sources.USER
+                  );
+                  quill.setSelection(
+                    range.index + htmlContent.length + buttonHtml.length + 1,
+                    Quill.sources.SILENT
+                  );
+                }
               }
             },
           },
@@ -215,7 +191,6 @@
       buttons.forEach((button) => {
         buttonIds.push(button.id);
       });
-      console.log(buttonIds);
       // do the same for editable-span ids
       const spans = doc.querySelectorAll(".editable-span");
       const spanIds = [];
@@ -228,7 +203,6 @@
         const btnIdRm = buttonId.replace("btn-", "");
         if (!spanIds.includes(btnIdRm)) {
           // Use includes on the array of ids
-          console.log("Removing button with id: ", btnIdRm);
           const button = document.getElementById("btn-" + btnIdRm);
           if (button) button.remove();
         }
