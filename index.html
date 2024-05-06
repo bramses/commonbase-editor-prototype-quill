@@ -1,157 +1,246 @@
-<!-- Include stylesheet -->
-<link
-  href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css"
-  rel="stylesheet"
-/>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quill Editor</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.quilljs.com/1.3.6/quill.snow.css"
+    />
 
-<!-- Create the editor container -->
-<div id="editor">
-  <p>Hello World!</p>
-  <p>Some initial <strong>bold</strong> text</p>
-  <p><br /></p>
-</div>
+    <!-- Include stylesheet -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/he/he.js"></script>
+  </head>
 
-<!-- Include the Quill library -->
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.js"></script>
+  <!-- Create the editor container -->
+  <div id="editor">
+    <p>Hello World!</p>
+    <p>Some initial <strong>bold</strong> text</p>
+    <p><br /></p>
+  </div>
 
-<!-- Initialize Quill editor -->
+  <!-- Include the Quill library -->
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.js"></script>
 
-<script>
-  //Import Quill namespace dependencies
-  const BlockEmbed = Quill.import("blots/block/embed");
+  <!-- Initialize Quill editor -->
 
-  class CustomHtmlBlot extends BlockEmbed {
-    static create(value) {
-      let node = super.create();
-      // Create a container for both the text and the button
-      node.innerHTML = value.html;
-      return node;
+  <script>
+    //Import Quill namespace dependencies
+    const BlockEmbed = Quill.import("blots/block/embed");
+    console.log(BlockEmbed);
+
+    class CustomHtmlBlot extends BlockEmbed {
+      static create(value) {
+        let node = super.create();
+        // Create a container for both the text and the button
+
+        node.innerHTML = value.html;
+        return node;
+      }
+
+      static value(node) {
+        return {
+          html: node.innerHTML,
+        };
+      }
     }
 
-    static value(node) {
-      return {
-        html: node.innerHTML,
-      };
+    CustomHtmlBlot.blotName = "customHtml";
+    CustomHtmlBlot.tagName = "div"; // Use a div to wrap the content
+    Quill.register(CustomHtmlBlot);
+
+    const Inline = Quill.import("blots/inline");
+
+    class EditableSpan extends Inline {
+      static create(value) {
+        let node = super.create();
+        node.setAttribute("id", value.id); // Set the ID attribute
+        node.setAttribute("contenteditable", "true"); // Make the span editable
+        node.innerText = value.content; // Set the inner HTML
+        console.log(node);
+        return node;
+      }
+
+      static value(node) {
+        return {
+          id: node.getAttribute("id"),
+          content: node.innerHTML,
+        };
+      }
     }
-  }
 
-  CustomHtmlBlot.blotName = "customHtml";
-  CustomHtmlBlot.tagName = "div"; // Use a div to wrap the content
-  Quill.register(CustomHtmlBlot);
+    EditableSpan.blotName = "editableSpan";
+    EditableSpan.className = "editable-span";
+    EditableSpan.tagName = "blockquote";
+    Quill.register(EditableSpan);
 
-  const Inline = Quill.import("blots/inline");
+    class BoxHTML extends BlockEmbed {
+      static deleteAt(index, length) {
+        console.log("Delete at", index, length);
+        // First, call the super method to handle the default deletion behavior
+        super.deleteAt(index, length);
 
-  class EditableSpan extends Inline {
-    static create(value) {
-      let node = super.create();
-      node.setAttribute("id", value.id); // Set the ID attribute
-      node.innerHTML = value.content; // Set the inner HTML
-      console.log(node);
-      return node;
-    }
+        // Get the editable span element
+        let editableSpan = this.domNode.querySelector(
+          'span[contenteditable="true"]'
+        );
 
-    static value(node) {
-      return {
-        id: node.getAttribute("id"),
-        content: node.innerHTML,
-      };
-    }
-  }
+        // Check if the editable span is empty after the deletion
+        if (editableSpan.textContent.trim().length === 0) {
+          // If empty, remove the entire block embed
+          console.log("Removing the block embed");
+          this.remove();
+        } else {
+          // If not empty, update the data-text attribute
+          console.log("Updating the data-text attribute");
+          this.domNode.setAttribute("data-text", editableSpan.textContent);
+        }
+      }
+      static create(value) {
+        let node = super.create();
 
-  //   class EditableSpan extends Inline {
-  //     static create(value) {
-  //       let node = super.create();
-  //       node.innerHTML = value;
-  //       return node;
-  //     }
+        // Create a container div that includes both the editable text and the button
+        node.innerHTML = `<div style="display: flex; align-items: center;" contenteditable="true">
+                        <span contenteditable="true" style="flex-grow: 1;">${value.content}</span>
+                        <button onclick="alert('Button clicked! ${value.id}')">Click Me</button>
+                      </div>`;
 
-  //     static value(node) {
-  //       return { html: node.innerHTML };
-  //     }
-  //   }
-
-  EditableSpan.blotName = "editableSpan";
-  EditableSpan.className = "editable-span";
-  EditableSpan.tagName = "div";
-  Quill.register(EditableSpan);
-
-  // Initialize Quill
-  const quill = new Quill("#editor", {
-    theme: "snow",
-    modules: {
-      toolbar: {
-        container: [
-          ["customHtmlButton"], // Custom button
-        ],
-        handlers: {
-          customHtmlButton: function () {
-            const htmlContent = "Custom HTML Content";
-
-            const range = quill.getSelection(true);
-            if (range) {
-              const id = Math.random().toString(36).substring(7);
-              const buttonHtml = `<button id="btn-${id}" onclick=\"alert('Button clicked!')\">Click Me</button>`;
-              quill.insertText(range.index, " ", Quill.sources.USER);
-              quill.insertEmbed(
-                range.index + 1,
-                "editableSpan",
-                { id: `${id}`, content: htmlContent },
-                Quill.sources.USER
+        let observer = new MutationObserver((mutationsList) => {
+          for (let mutation of mutationsList) {
+            if (
+              mutation.type === "characterData" ||
+              mutation.type === "childList"
+            ) {
+              // Update the data-text attribute whenever there's a change in text content
+              let editableSpan = node.querySelector(
+                'span[contenteditable="true"]'
               );
-              quill.insertEmbed(
-                range.index + htmlContent.length + 1,
-                "customHtml",
-                { html: buttonHtml },
-                Quill.sources.USER
-              );
-              quill.setSelection(
-                range.index + htmlContent.length + buttonHtml.length + 1,
-                Quill.sources.SILENT
-              );
+              node.setAttribute("data-text", editableSpan.textContent);
             }
+          }
+        });
+
+        // Observe both characterData and childList changes within the node and its descendants
+        observer.observe(node, {
+          characterData: true,
+          childList: true,
+          subtree: true,
+        });
+        node.setAttribute("data-text", value.content);
+        return node;
+      }
+
+      static value(node) {
+        let text = node.getAttribute("data-text") || "";
+        return {
+          text,
+          content: node.querySelector('span[contenteditable="true"]').innerHTML,
+          id: node.id,
+        }; // Assuming ID is still relevant for your use case
+      }
+    }
+
+    BoxHTML.blotName = "boxHtml";
+    BoxHTML.tagName = "div"; // Use a div to wrap the content
+    Quill.register(BoxHTML);
+
+    // Initialize Quill
+    const quill = new Quill("#editor", {
+      theme: "snow",
+      modules: {
+        toolbar: {
+          container: [
+            ["customHtmlButton"], // Custom button
+          ],
+          handlers: {
+            customHtmlButton: function () {
+              const htmlContentz = "Custom HTML Content";
+              const htmlContent = he.decode(
+                `I said, “The moment you admit that questions of right and wrong relate to the well-being of conscious creatures—in this case, human beings—then you have to admit that we know something about morality. And we know, in this case, that the burqa isn’t the best solution to the mystery of how to maximize human well-being.” “That’s just your opinion,” she said. “Well, let’s make it simpler. Let’s say we found a culture on an island somewhere that was removing the eyeballs of every third child. Would you then agree that we had found a culture that was not perfectly maximizing human well-being?” “It would depend on why they were doing it,” she said. “Let’s say they’re doing it for religious reasons. They have a scripture which says, ‘Every third should walk in darkness,’ or some such nonsense.” Then she said, “Well, then you could never say that they were wrong.” The fact that these hypothetical barbarians were laboring under a religious precept trumped all other possible truth claims for her, leaving us with no way to declare anything better or worse in moral terms.`
+              );
+
+              const range = quill.getSelection(true);
+              if (range) {
+                const id = Math.random().toString(36).substring(7);
+
+                quill.insertEmbed(
+                  range.index,
+                  "boxHtml",
+                  {
+                    content: htmlContent,
+                    id: Math.random().toString(36).substring(7),
+                  },
+                  Quill.sources.USER
+                );
+
+                // const buttonHtml = `<button id="btn-${id}" onclick=\"alert('Button clicked! ${id}')\">Click Me</button>`;
+                // quill.insertText(range.index, " ", Quill.sources.USER);
+                // quill.insertEmbed(
+                //   range.index + 1,
+                //   "editableSpan",
+                //   { id: `${id}`, content: htmlContent },
+                //   Quill.sources.USER
+                // );
+                // quill.insertEmbed(
+                //   range.index + htmlContent.length + 1,
+                //   "customHtml",
+                //   { html: buttonHtml },
+                //   Quill.sources.USER
+                // );
+                // quill.setSelection(
+                //   range.index + htmlContent.length + buttonHtml.length + 1,
+                //   Quill.sources.SILENT
+                // );
+              }
+            },
           },
         },
       },
-    },
-  });
-
-  // whenever text is changed log all the button ids
-  quill.on("text-change", function (delta, oldDelta, source) {
-    const buttonIds = [];
-    const sem = quill.getSemanticHTML();
-    // parse sem to get button ids
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(sem, "text/html");
-    const buttons = doc.querySelectorAll("button");
-    buttons.forEach((button) => {
-      buttonIds.push(button.id);
-    });
-    console.log(buttonIds);
-    // do the same for editable-span ids
-    const spans = doc.querySelectorAll(".editable-span")
-    const spanIds = [];
-    spans.forEach((span) => {
-      spanIds.push(span.id);
     });
 
-    // if an id in buttons but not in spanIds, remove the button
-    buttonIds.forEach((buttonId) => {
+    // whenever text is changed log all the button ids
+    quill.on("text-change", function (delta, oldDelta, source) {
+      const buttonIds = [];
+      const sem = quill.getSemanticHTML();
+      // parse sem to get button ids
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(sem, "text/html");
+      const buttons = doc.querySelectorAll("button");
+      buttons.forEach((button) => {
+        buttonIds.push(button.id);
+      });
+      console.log(buttonIds);
+      // do the same for editable-span ids
+      const spans = doc.querySelectorAll(".editable-span");
+      const spanIds = [];
+      spans.forEach((span) => {
+        spanIds.push(span.id);
+      });
+
+      // if an id in buttons but not in spanIds, remove the button
+      buttonIds.forEach((buttonId) => {
         const btnIdRm = buttonId.replace("btn-", "");
-      if (!spanIds.includes(btnIdRm)) { // Use includes on the array of ids
-        console.log("Removing button with id: ", btnIdRm);
-        const button = document.getElementById("btn-" + btnIdRm);
-        if (button) button.remove();
-      }
+        if (!spanIds.includes(btnIdRm)) {
+          // Use includes on the array of ids
+          console.log("Removing button with id: ", btnIdRm);
+          const button = document.getElementById("btn-" + btnIdRm);
+          if (button) button.remove();
+        }
+      });
     });
 
-
-  });
-
-  // Append the button to Quill's toolbar
-  const toolbar = quill.getModule("toolbar");
-  const buttonContainer = document.querySelector(".ql-toolbar");
-  const button = document.createElement("button");
-  button.innerHTML = "Add HTML";
-  button.onclick = () => toolbar.handlers.customHtmlButton();
-  buttonContainer.appendChild(button);
-</script>
+    // Append the button to Quill's toolbar
+    const toolbar = quill.getModule("toolbar");
+    const buttonContainer = document.querySelector(".ql-toolbar");
+    const button = document.createElement("button");
+    button.innerHTML = "Add HTML";
+    button.onclick = () => toolbar.handlers.customHtmlButton();
+    buttonContainer.appendChild(button);
+  </script>
+</html>
