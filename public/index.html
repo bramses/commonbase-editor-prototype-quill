@@ -21,7 +21,6 @@
   <!-- Create the editor container -->
   <div id="editor">
     <p>Hello World!</p>
-    <p>Some initial <strong>bold</strong> text</p>
     <p><br /></p>
   </div>
 
@@ -62,8 +61,23 @@
         let node = super.create();
         node.setAttribute("id", value.id); // Set the ID attribute
         node.setAttribute("contenteditable", "true"); // Make the span editable
-        node.innerText = value.content; // Set the inner HTML
-        console.log(node);
+
+        // Create a blockquote element child
+        const blockquote = document.createElement("blockquote");
+        blockquote.innerText = value.content.text; // Set the text inside blockquote
+
+        // Create a footer element
+        const footer = document.createElement("blockquote");
+        const br = document.createElement("p");
+        footer.innerText = `-- ${value.content.title} by ${value.content.author}`; // Set the text inside footer
+
+        // Append blockquote and footer to the node
+        node.appendChild(blockquote);
+        node.appendChild(br);
+        node.appendChild(br)
+        node.appendChild(footer);
+        node.appendChild(br);
+
         return node;
       }
 
@@ -77,7 +91,7 @@
 
     EditableSpan.blotName = "editableSpan";
     EditableSpan.className = "editable-span";
-    EditableSpan.tagName = "blockquote";
+    EditableSpan.tagName = "div";
     Quill.register(EditableSpan);
 
     class BoxHTML extends BlockEmbed {
@@ -103,6 +117,14 @@
       }
     }
 
+    // get text of surrounding p at cursor
+    function getSurroundingText() {
+      const range = quill.getSelection();
+      const [line, offset] = quill.getLine(range.index);
+      const text = line.domNode.textContent;
+      return text;
+    }
+
     BoxHTML.blotName = "boxHtml";
     BoxHTML.tagName = "div"; // Use a div to wrap the content
     Quill.register(BoxHTML);
@@ -117,15 +139,21 @@
           ],
           handlers: {
             customHtmlButton: function () {
-              const htmlContentz = "Custom HTML Content";
               const htmlContent = he.decode(
                 `I said, “The moment you admit that questions of right and wrong relate to the well-being of conscious creatures—in this case, human beings—then you have to admit that we know something about morality. And we know, in this case, that the burqa isn’t the best solution to the mystery of how to maximize human well-being.” “That’s just your opinion,” she said. “Well, let’s make it simpler. Let’s say we found a culture on an island somewhere that was removing the eyeballs of every third child. Would you then agree that we had found a culture that was not perfectly maximizing human well-being?” “It would depend on why they were doing it,” she said. “Let’s say they’re doing it for religious reasons. They have a scripture which says, ‘Every third should walk in darkness,’ or some such nonsense.” Then she said, “Well, then you could never say that they were wrong.” The fact that these hypothetical barbarians were laboring under a religious precept trumped all other possible truth claims for her, leaving us with no way to declare anything better or worse in moral terms.`
               );
 
               const range = quill.getSelection(true);
-              console.log(range);
-              const text = quill.getText(range.index, range.length);
-              console.log(text);
+              let text = null; 
+              if (range.length === 0) {
+                text = getSurroundingText();
+                console.log(text);
+                return;
+              } else {
+                quill.getText(range.index, range.length);
+              }
+
+            
               fetch("http://localhost:3000/query", {
                 method: "POST",
                 headers: {
@@ -138,41 +166,30 @@
                 .then((res) => res.json())
                 .then((data) => {
                   // extract text 
-
-                  /*
-
-                  [{
-    text: 'Napoleon’s background as a Corsican of Italian extraction later invited endless abuse from detractors. One of his earliest British biographers, William Burdon, said of his Italian ancestry: ‘To this may be attributed the dark ferocity of his character, which partakes more of Italian treachery than of French openness and vivacity.’18 Similarly, in November 1800 the British journalist William Cobbett described Napoleon as ‘a low-bred upstart from the contemptible island of Corsica!’ When the French senate proposed that Napoleon become emperor in 1804, the Comte Jean-Denis Lanjuinais expostulated: ‘What! Will you submit to give your country a master taken from a race of origin so ignominious that the Romans disdained to employ them as slaves?’',
-    title: 'Napoleon: A Life',
-    similarity: 0.870763589840725,
-    id: 575337440,
-    author: 'Andrew Roberts',
-    thoughts: null
-  }...]
-  
-                    */
-                    const texts = data.map((d) => d.text);
-                    texts.forEach((text) => {
+                    let offset = 0;
+                    let firstElement = [data[0]];
+                    data.forEach((da) => {
                       const id = Math.random().toString(36).substring(7);
-                      const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent: ${range}')\">Click Me</button>`;
-                      quill.insertText(range.index, " ", Quill.sources.USER);
+                      const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent: ${range}')\">Sources</button>`;
+                      quill.insertText(range.index + range.length + 1, " ", Quill.sources.USER);
                       quill.insertEmbed(
-                        range.index + 1,
+                        range.index + range.length + offset + 1,
                         "editableSpan",
-                        { id: `${id}`, content: text },
+                        { id: `${id}`, content: da },
                         Quill.sources.USER
                       );
-                      quill.insertEmbed(
-                        range.index + text.length + 1,
-                        "customHtml",
-                        { html: buttonHtml },
-                        Quill.sources.USER
-                      );
+                      // quill.insertEmbed(
+                      //   range.index + offset + text.length + 1,
+                      //   "customHtml",
+                      //   { html: buttonHtml },
+                      //   Quill.sources.USER
+                      // );
                       quill.setSelection(
-                        range.index + text.length + buttonHtml.length + 1,
+                        range.index + offset + range.length + text.length + buttonHtml.length + 1,
                         Quill.sources.SILENT
                       );
                     });
+                    offset += text.length;
 
                 });
 
