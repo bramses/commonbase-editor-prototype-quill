@@ -259,7 +259,16 @@
     // EventSource = SSE;
     sseButton.onclick = () => {
       console.log("SSE button clicked");
-      // console.log(SSE)
+
+      // make a confirmation dialog
+      const confirm = window.confirm(
+        "Are you sure you want to use Server Sent Events?"
+      );
+
+      if (!confirm) {
+        return;
+      }
+
       const highlightedText = quill.getText(quill.getSelection());
       // var eventSource = new EventSource("/events", {
       //   payload: highlightedText
@@ -278,9 +287,24 @@
         quill.insertText(cursorEnd, event.data.replaceAll('"', ""));
         // set cursor to end of data
         quill.setSelection(cursorEnd + event.data.length);
-        // cursorEnd += event.data.length;
+        cursorEnd += event.data.length - 2;
+        // console.log(event.data);
+        // console.log(cursorEnd);
       };
     };
     buttonContainer.appendChild(sseButton);
+
+    // add a button that allows user to see highlighted text
+    const highlightButton = document.createElement("button");
+    highlightButton.innerHTML = "Embed";
+    highlightButton.style.marginLeft = "10px";
+    highlightButton.style.marginRight = "10px";
+    highlightButton.onclick = () => {
+      const range = quill.getSelection();
+      const text = quill.getText(range.index, range.length);
+      alert("Embedding! " + text);
+    };
+
+    buttonContainer.appendChild(highlightButton);
   </script>
 </html>
