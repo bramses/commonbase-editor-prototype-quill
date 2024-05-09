@@ -6,10 +6,17 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
+import OpenAI from "openai";
 
 const app = express();
 app.use(express.json());
 dotenv.config();
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+const openai = new OpenAI({
+    apiKey: OPENAI_API_KEY
+});
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -44,6 +51,38 @@ app.post("/query", (req, res) => {
             console.error('Error:', error);
             res.json({ status: "error" });
         });    
+});
+
+async function stream () {
+    const completion = openai.chat.completions.create({
+        model: "gpt-4-turbo",
+        messages: [
+          {"role": "system", "content": "You are a helpful assistant."},
+          {"role": "user", "content": "Hello!"}
+        ],
+        stream: true,
+    });
+    
+    return completion;
+}
+
+app.get('/events', async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+  
+    const sendEvent = (data) => {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+  
+    const completion = await stream();
+    for await (const chunk of completion) {
+        if (chunk.choices[0].delta.content === undefined) {
+            break;
+        }
+        console.log(chunk.choices[0].delta.content);
+        sendEvent(chunk.choices[0].delta.content);
+    }
 });
 
 app.listen(3000, () => {
