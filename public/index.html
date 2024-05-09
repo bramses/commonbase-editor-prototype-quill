@@ -10,6 +10,7 @@
       href="https://cdn.quilljs.com/1.3.6/quill.snow.css"
     />
 
+
     <!-- Include stylesheet -->
     <link
       href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css"
@@ -27,12 +28,16 @@
   <!-- Include the Quill library -->
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.js"></script>
 
+  <!-- <script src="/scripts/sse-js/lib/sse.js"></script>
+  <script>
+    console.log(SSE)
+  </script> -->
+
   <!-- Initialize Quill editor -->
 
   <script>
     //Import Quill namespace dependencies
     const BlockEmbed = Quill.import("blots/block/embed");
-    console.log(BlockEmbed);
 
     class CustomHtmlBlot extends BlockEmbed {
       static create(value) {
@@ -150,7 +155,7 @@
                 console.log(text);
                 return;
               } else {
-                quill.getText(range.index, range.length);
+                text = quill.getText(range.index, range.length);
               }
 
               fetch("http://localhost:3000/query", {
@@ -170,13 +175,14 @@
                   data.forEach((da) => {
                     const id = Math.random().toString(36).substring(7);
                     const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent: ${range}')\">Sources</button>`;
+                    // insert at end of quill
                     quill.insertText(
-                      range.index + range.length + 1,
+                      quill.getLength(),
                       " ",
                       Quill.sources.USER
                     );
                     quill.insertEmbed(
-                      range.index + range.length + offset + 1,
+                      quill.getLength(),
                       "editableSpan",
                       { id: `${id}`, content: da },
                       Quill.sources.USER
@@ -250,16 +256,29 @@
     sseButton.innerHTML = "SSE";
     sseButton.style.marginLeft = "10px";
     sseButton.style.marginRight = "10px";
+    // EventSource = SSE;
     sseButton.onclick = () => {
       console.log("SSE button clicked");
-      var eventSource = new EventSource("/events");
+      // console.log(SSE)
+      const highlightedText = quill.getText(quill.getSelection());
+      // var eventSource = new EventSource("/events", {
+      //   payload: highlightedText
+      // });
+
+      
+      var eventSource = new EventSource("/events?payload=" + highlightedText, {
+        withCredentials: true,
+      });
+      const end = quill.getLength();
+      let cursorEnd = end;
       eventSource.onmessage = function (event) {
-        // get cursor position
-        const cursorPosition = quill.getSelection();
+        // write at end of file
+        
         // insert text at cursor position
-        quill.insertText(cursorPosition.index, event.data.replaceAll('"', ''));
+        quill.insertText(cursorEnd, event.data.replaceAll('"', ""));
         // set cursor to end of data
-        quill.setSelection(cursorPosition.index + event.data.length);
+        quill.setSelection(cursorEnd + event.data.length);
+        // cursorEnd += event.data.length;
       };
     };
     buttonContainer.appendChild(sseButton);
