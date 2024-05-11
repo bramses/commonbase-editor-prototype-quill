@@ -1,5 +1,8 @@
 # an editor for personal library science
 
+![Screenshot 2024-05-11 18-50-44](https://github.com/bramses/commonbase-editor-prototype-quill/assets/3282661/bbb09805-ae9c-4771-b614-7b5458efe45a)
+
+
 **[check out the sister repo -- commonbase prototype!](https://github.com/bramses/commonbase-prototype)**
 
 **[video demo](https://www.youtube.com/watch?v=oy3FCbfF7Gg)**
