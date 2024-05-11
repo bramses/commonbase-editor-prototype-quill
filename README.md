@@ -1,5 +1,6 @@
 # an editor for personal library science
 
+**[check out the sister repo -- commonbase prototype!](https://github.com/bramses/commonbase-prototype)**
 
 **[video demo](https://www.youtube.com/watch?v=oy3FCbfF7Gg)**
 
