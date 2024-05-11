@@ -21,7 +21,7 @@ const openai = new OpenAI({
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SEARCH_URL = process.env.quoordinates_server;
+const SEARCH_URL = process.env.SEARCH_URL;
 const RANDOM_URL = process.env.quoordinates_server_random;
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -32,6 +32,7 @@ app.get("/", (req, res) => {
 // post body.text to the server
 app.post("/query", (req, res) => {
   const { text } = req.body;
+  console.log('qry');
   console.log(text);
 
   fetch(SEARCH_URL, {
@@ -85,14 +86,24 @@ app.get("/events", async (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
+  // TODO: This doesnt work and is preventing appendToHistory from being called
+  const sendClose = () => {
+    console.log("closing");
+    res.write("data: end\n\n");
+    res.status(204).end();
+  };
+
   const completion = await stream(quote);
   for await (const chunk of completion) {
     if (chunk.choices[0].delta.content === undefined) {
+      console.log("no content");
       break;
     }
     console.log(chunk.choices[0].delta.content);
     sendEvent(chunk.choices[0].delta.content);
   }
+
+  setTimeout(sendClose, 1000); // Delay the closing of the connection
 });
 
 app.listen(3000, () => {
