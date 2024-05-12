@@ -5,6 +5,8 @@
 
 **[check out the sister repo -- commonbase prototype!](https://github.com/bramses/commonbase-prototype)**
 
+**[or check out the current production of the editor that uses Kindle highlights -- Commonplace Bot!](https://github.com/bramses/commonplace-bot)**
+
 **[video demo](https://www.youtube.com/watch?v=oy3FCbfF7Gg)**
 
 end to end creativity with personal library science
