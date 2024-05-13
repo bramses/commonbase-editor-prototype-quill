@@ -29,6 +29,31 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+app.post("/insert", (req, res) => { 
+  console.log(req.body);
+
+  fetch("http://localhost:3550/record", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ 
+      data: req.body.data,
+      metadata: req.body.metadata,
+      embedMeta: req.body.embedMeta 
+    })
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      console.log(data);
+      res.json(data);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+      res.json({ status: "error" });
+    });
+});
+
 // post body.text to the server
 app.post("/query", (req, res) => {
   const { text } = req.body;

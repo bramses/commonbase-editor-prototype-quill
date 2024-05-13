@@ -60,30 +60,56 @@
 
     const Inline = Quill.import("blots/inline");
 
+    const source = "twitter";
     class EditableSpan extends Inline {
       static create(value) {
-        let node = super.create();
-        node.setAttribute("id", value.id); // Set the ID attribute
-        node.setAttribute("contenteditable", "true"); // Make the span editable
+        if (source === "twitter") {
+          let node = super.create();
+          node.setAttribute("id", value.id); // Set the ID attribute
+          node.setAttribute("contenteditable", "true"); // Make the span editable
 
-        console.log(value.content);
-        // Create a blockquote element child
-        const blockquote = document.createElement("blockquote");
-        blockquote.innerText = value.content.data; // Set the text inside blockquote
+          console.log(value.content);
+          // Create a blockquote element child
+          const blockquote = document.createElement("blockquote");
+          blockquote.innerText = value.content.data; // Set the text inside blockquote
 
-        // Create a footer element
-        const footer = document.createElement("blockquote");
-        const br = document.createElement("p");
-        footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
+          // Create a footer element
+          const footer = document.createElement("blockquote");
+          const br = document.createElement("p");
+          footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
 
-        // Append blockquote and footer to the node
-        node.appendChild(blockquote);
-        node.appendChild(br);
-        node.appendChild(br);
-        node.appendChild(footer);
-        node.appendChild(br);
+          // Append blockquote and footer to the node
+          node.appendChild(blockquote);
+          node.appendChild(br);
+          node.appendChild(br);
+          node.appendChild(footer);
+          node.appendChild(br);
 
-        return node;
+          return node;
+        } else {
+          let node = super.create();
+          node.setAttribute("id", value.id); // Set the ID attribute
+          node.setAttribute("contenteditable", "true"); // Make the span editable
+
+          console.log(value.content);
+          // Create a blockquote element child
+          const blockquote = document.createElement("blockquote");
+          blockquote.innerText = value.content.text; // Set the text inside blockquote
+
+          // Create a footer element
+          const footer = document.createElement("blockquote");
+          const br = document.createElement("p");
+          footer.innerText = `-- ${value.content.title} by ${value.content.author}`; // Set the text inside footer
+
+          // Append blockquote and footer to the node
+          node.appendChild(blockquote);
+          node.appendChild(br);
+          node.appendChild(br);
+          node.appendChild(footer);
+          node.appendChild(br);
+
+          return node;
+        }
       }
 
       static value(node) {
@@ -248,7 +274,7 @@
 
     // create another button for sse
     const sseButton = document.createElement("button");
-    sseButton.innerHTML = "SSE";
+    sseButton.innerHTML = "Context";
     sseButton.style.marginLeft = "10px";
     sseButton.style.marginRight = "10px";
     // EventSource = SSE;
@@ -330,5 +356,44 @@
     };
 
     buttonContainer.appendChild(historyButton);
+
+    // add a embed button
+    const embedButton = document.createElement("button");
+    embedButton.innerHTML = "Embed";
+    embedButton.style.marginLeft = "10px";
+    embedButton.style.marginRight = "10px";
+
+    embedButton.onclick = () => {
+      const range = quill.getSelection(true);
+      let text = null;
+      if (range.length === 0) {
+        text = getSurroundingText();
+        return;
+      } else {
+        text = quill.getText(range.index, range.length);
+      }
+
+      fetch("http://localhost:3000/insert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          data: text,
+          metadata: {
+            url: "Commonbase Editor",
+            screen_name: "Bram",
+          },
+          embedMeta: false
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log(data);
+        });
+    };
+
+    buttonContainer.appendChild(embedButton);
+
   </script>
 </html>
