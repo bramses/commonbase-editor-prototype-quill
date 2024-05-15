@@ -21,10 +21,12 @@ const openai = new OpenAI({
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SEARCH_URL = process.env.SEARCH_URL;
+const SEARCH_URL_BOOKS = process.env.SEARCH_URL_BOOKS;
+const SEARCH_URL_TWEETS = process.env.SEARCH_URL_TWEETS;
 const RANDOM_URL = process.env.quoordinates_server_random;
 
 app.use(express.static(path.join(__dirname, "public")));
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -56,9 +58,17 @@ app.post("/insert", (req, res) => {
 
 // post body.text to the server
 app.post("/query", (req, res) => {
-  const { text } = req.body;
-  console.log('qry');
+  const { text, source } = req.body;
+
   console.log(text);
+ 
+  let SEARCH_URL = "";
+  if (source === "books") {
+    SEARCH_URL = SEARCH_URL_BOOKS;
+  } else if (source === "tweets") {
+    SEARCH_URL = SEARCH_URL_TWEETS;
+  }
+  
 
   fetch(SEARCH_URL, {
     method: "POST",

@@ -16,6 +16,11 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/he/he.js"></script>
+    <style>
+      button:hover .svg-icon {
+        fill: blue;
+      }
+    </style>
   </head>
 
   <!-- Create the editor container -->
@@ -60,15 +65,13 @@
 
     const Inline = Quill.import("blots/inline");
 
-    const source = "twitter";
+    let source = "books";
     class EditableSpan extends Inline {
       static create(value) {
-        if (source === "twitter") {
+        if (source === "tweets") {
           let node = super.create();
           node.setAttribute("id", value.id); // Set the ID attribute
           node.setAttribute("contenteditable", "true"); // Make the span editable
-
-          console.log(value.content);
           // Create a blockquote element child
           const blockquote = document.createElement("blockquote");
           blockquote.innerText = value.content.data; // Set the text inside blockquote
@@ -186,6 +189,7 @@
                 },
                 body: JSON.stringify({
                   text: text,
+                  source: source,
                 }),
               })
                 .then((res) => res.json())
@@ -265,16 +269,20 @@
     const toolbar = quill.getModule("toolbar");
     const buttonContainer = document.querySelector(".ql-toolbar");
     const button = document.createElement("button");
-    button.innerHTML = "Search";
-    // add margin to the button
-    button.style.marginLeft = "10px";
-    button.style.marginRight = "10px";
+    button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" x="0px" y="0px" width="auto" height="100" viewBox="0 0 50 50" class="svg-icon">
+<path d="M 21 3 C 11.621094 3 4 10.621094 4 20 C 4 29.378906 11.621094 37 21 37 C 24.710938 37 28.140625 35.804688 30.9375 33.78125 L 44.09375 46.90625 L 46.90625 44.09375 L 33.90625 31.0625 C 36.460938 28.085938 38 24.222656 38 20 C 38 10.621094 30.378906 3 21 3 Z M 21 5 C 29.296875 5 36 11.703125 36 20 C 36 28.296875 29.296875 35 21 35 C 12.703125 35 6 28.296875 6 20 C 6 11.703125 12.703125 5 21 5 Z"></path>
+</svg>`;
+    // // add margin to the button
+    // button.style.marginLeft = "10px";
+    // button.style.marginRight = "10px";
+    // // add border to the button
+    // button.style.border = "1px solid black";
     button.onclick = () => toolbar.handlers.customHtmlButton();
     buttonContainer.appendChild(button);
 
     // create another button for sse
     const sseButton = document.createElement("button");
-    sseButton.innerHTML = "Context";
+    sseButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="auto" height="100" stroke-width="1.5" fill="currentColor" class="svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M10 12H5C4.44772 12 4 11.5523 4 11V7.5C4 6.94772 4.44772 6.5 5 6.5H9C9.55228 6.5 10 6.94772 10 7.5V12ZM10 12C10 14.5 9 16 6 17.5" stroke="#000000" stroke-width="1.5" stroke-linecap="round"></path><path d="M20 12H15C14.4477 12 14 11.5523 14 11V7.5C14 6.94772 14.4477 6.5 15 6.5H19C19.5523 6.5 20 6.94772 20 7.5V12ZM20 12C20 14.5 19 16 16 17.5" stroke="#000000" stroke-width="1.5" stroke-linecap="round"></path></svg>`;
     sseButton.style.marginLeft = "10px";
     sseButton.style.marginRight = "10px";
     // EventSource = SSE;
@@ -344,22 +352,22 @@
       history.push({ cause, action, result });
     };
 
-    const historyButton = document.createElement("button");
-    historyButton.innerHTML = "History";
-    historyButton.style.marginLeft = "10px";
-    historyButton.style.marginRight = "10px";
-    historyButton.onclick = () => {
-      const range = quill.getSelection();
-      const text = quill.getText(range.index, range.length);
-      alert("check console for history");
-      console.log(history);
-    };
+    // const historyButton = document.createElement("button");
+    // historyButton.innerHTML = "History";
+    // historyButton.style.marginLeft = "10px";
+    // historyButton.style.marginRight = "10px";
+    // historyButton.onclick = () => {
+    //   const range = quill.getSelection();
+    //   const text = quill.getText(range.index, range.length);
+    //   alert("check console for history");
+    //   console.log(history);
+    // };
 
-    buttonContainer.appendChild(historyButton);
+    // buttonContainer.appendChild(historyButton);
 
     // add a embed button
     const embedButton = document.createElement("button");
-    embedButton.innerHTML = "Embed";
+    embedButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="auto" height="100" stroke-width="1.5" viewBox="0 0 24 24" fill="none" class="svg-icon" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M8 12H12M16 12H12M12 12V8M12 12V16" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
     embedButton.style.marginLeft = "10px";
     embedButton.style.marginRight = "10px";
 
@@ -395,5 +403,15 @@
 
     buttonContainer.appendChild(embedButton);
 
-  </script>
+    // switch datasource from tweets to books button
+    const switchButton = document.createElement("button");
+    switchButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" class="svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M17 13C17.5523 13 18 12.5523 18 12C18 11.4477 17.5523 11 17 11C16.4477 11 16 11.4477 16 12C16 12.5523 16.4477 13 17 13Z" fill="#000000" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M17 17H7C4.23858 17 2 14.7614 2 12C2 9.23858 4.23858 7 7 7H17C19.7614 7 22 9.23858 22 12C22 14.7614 19.7614 17 17 17Z" stroke="#000000" stroke-width="1.5"></path></svg>`;
+
+    switchButton.onclick = () => {
+      source = source === "tweets" ? "books" : "tweets";
+      alert(`Switched to ${source}`);
+    }
+
+    buttonContainer.appendChild(switchButton);
+</script>
 </html>
