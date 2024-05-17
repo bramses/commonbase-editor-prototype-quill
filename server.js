@@ -91,7 +91,7 @@ app.post("/query", (req, res) => {
 async function stream(quote) {
   const prompt = `I only have the following quote, recreate outside context using concepts from the world. Do a breadth first search of external data. This means that you are **not rephrasing the content in the quote**. You are pulling in examples and information from the world **outside the set** of the quote. Do not bother repeating or rehashing the quote.\n\nQuote:\n${quote}`;
   const completion = openai.chat.completions.create({
-    model: "gpt-4-turbo",
+    model: "gpt-4o",
     messages: [
       { role: "system", content: "You are a helpful assistant." },
       { role: "user", content: prompt },
