@@ -72,7 +72,6 @@ app.post("/query", (req, res) => {
     SEARCH_URL = SEARCH_URL_TWEETS;
   }
   
-
   fetch(SEARCH_URL, {
     method: "POST",
     headers: {
@@ -82,6 +81,7 @@ app.post("/query", (req, res) => {
   })
     .then((response) => response.json())
     .then((data) => {
+      console.log("Data from search");
       console.log(data);
       res.json(data);
     })
