@@ -42,17 +42,20 @@ app.post("/insert", (req, res) => {
     body: JSON.stringify({ 
       data: req.body.data,
       metadata: req.body.metadata,
-      embedMeta: req.body.embedMeta 
+      embedMeta: req.body.embedMeta,
+      tableName: "schema_2" // TODO: change this to a variable
     })
   })
     .then((response) => response.json())
     .then((data) => {
-      console.log(data);
-      res.json(data);
+      if (data.status !== 200) {
+        throw new Error("Error inserting data " + JSON.stringify(data));
+      }
+      res.status(200).json(data);
     })
     .catch((error) => {
       console.error("Error:", error);
-      res.json({ status: "error" });
+      res.status(500).json({ status: "error" });
     });
 });
 
