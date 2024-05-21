@@ -22,8 +22,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const SEARCH_URL_BOOKS = process.env.SEARCH_URL_BOOKS;
-const SEARCH_URL_TWEETS = process.env.SEARCH_URL_TWEETS;
-const RANDOM_URL = process.env.quoordinates_server_random;
+const SEARCH_URL_LOCAL = process.env.SEARCH_URL_LOCAL;
+const RANDOM_URL = process.env.RANDOM_URL;
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -42,11 +42,34 @@ app.post("/insert", (req, res) => {
     body: JSON.stringify({ 
       data: req.body.data,
       metadata: req.body.metadata,
-      embedMeta: req.body.embedMeta 
+      embedMeta: req.body.embedMeta,
+      tableName: "schema_2" // TODO: change this to a variable
     })
   })
     .then((response) => response.json())
     .then((data) => {
+      if (data.status !== 200) {
+        throw new Error("Error inserting data " + JSON.stringify(data));
+      }
+      res.status(200).json(data);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+      res.status(500).json({ status: "error" });
+    });
+});
+
+app.post("/wander", (req, res) => {
+  fetch(RANDOM_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ n: req.body.n, tableName: "schema" }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      console.log("Data from random");
       console.log(data);
       res.json(data);
     })
@@ -54,31 +77,39 @@ app.post("/insert", (req, res) => {
       console.error("Error:", error);
       res.json({ status: "error" });
     });
-});
+})
 
 // post body.text to the server
 app.post("/query", (req, res) => {
-  const { text, source } = req.body;
+  const { text, source, filter, table } = req.body;
+  console.log("Querying for " + text);
+  let qBody = {}
 
-  console.log(text);
- 
   let SEARCH_URL = "";
   if (source === "books") {
     SEARCH_URL = SEARCH_URL_BOOKS;
-  } else if (source === "tweets") {
-    SEARCH_URL = SEARCH_URL_TWEETS;
+    qBody = {
+      query: text,
+    }
+  } else {      
+    SEARCH_URL = SEARCH_URL_LOCAL;
+    qBody = {
+      query: text,
+      filter: filter,
+      table: table
+    }
   }
   
-
   fetch(SEARCH_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query: text }),
+    body: JSON.stringify(qBody),
   })
     .then((response) => response.json())
     .then((data) => {
+      console.log("Data from search");
       console.log(data);
       res.json(data);
     })
@@ -91,7 +122,7 @@ app.post("/query", (req, res) => {
 async function stream(quote) {
   const prompt = `I only have the following quote, recreate outside context using concepts from the world. Do a breadth first search of external data. This means that you are **not rephrasing the content in the quote**. You are pulling in examples and information from the world **outside the set** of the quote. Do not bother repeating or rehashing the quote.\n\nQuote:\n${quote}`;
   const completion = openai.chat.completions.create({
-    model: "gpt-4-turbo",
+    model: "gpt-4o",
     messages: [
       { role: "system", content: "You are a helpful assistant." },
       { role: "user", content: prompt },

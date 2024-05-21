@@ -29,6 +29,33 @@
     <p><br /></p>
   </div>
 
+  <dialog>
+    <p>What class would you like to include?</p>
+    <form method="dialog">
+      <fieldset>
+        <legend>Class Year</legend>
+        <label>
+          <input type="radio" name="class-year" value="1999" />
+          1999
+        </label>
+        <label>
+          <input type="radio" name="class-year" value="2020" />
+          2020
+        </label>
+        <label>
+          <input type="radio" name="class-year" value="all" checked />
+          All
+        </label>
+      </fieldset>
+      <!-- table name input field default value = schema -->
+      <label>
+        <span>Table Name</span>
+        <input type="text" name="table-name" value="schema" />
+      </label>
+      <button type="submit">Save</button>
+    </form>
+  </dialog>
+
   <!-- Include the Quill library -->
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.js"></script>
 
@@ -65,7 +92,7 @@
 
     const Inline = Quill.import("blots/inline");
 
-    let source = "books";
+    let source = "tweets";
     class EditableSpan extends Inline {
       static create(value) {
         if (source === "tweets") {
@@ -79,7 +106,9 @@
           // Create a footer element
           const footer = document.createElement("blockquote");
           const br = document.createElement("p");
-          footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
+          console.log(value.content);
+          footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author}`; // Set the text inside footer
+          // footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
 
           // Append blockquote and footer to the node
           node.appendChild(blockquote);
@@ -94,7 +123,6 @@
           node.setAttribute("id", value.id); // Set the ID attribute
           node.setAttribute("contenteditable", "true"); // Make the span editable
 
-          console.log(value.content);
           // Create a blockquote element child
           const blockquote = document.createElement("blockquote");
           blockquote.innerText = value.content.text; // Set the text inside blockquote
@@ -174,6 +202,19 @@
           handlers: {
             customHtmlButton: function () {
               const range = quill.getSelection(true);
+
+              // get class year from dialog filters (CHQ150)
+              let filter = {}
+              const classYear = document.querySelector("input[name='class-year']:checked").value;
+              if (classYear === "all") {
+                // no filter
+              } else {
+                // filter by class year
+                filter = {
+                  class: classYear
+                }
+              }
+
               let text = null;
               if (range.length === 0) {
                 text = getSurroundingText();
@@ -181,6 +222,8 @@
               } else {
                 text = quill.getText(range.index, range.length);
               }
+
+              const table = document.querySelector("input[name='table-name']").value;
 
               fetch("http://localhost:3000/query", {
                 method: "POST",
@@ -190,6 +233,8 @@
                 body: JSON.stringify({
                   text: text,
                   source: source,
+                  filter: JSON.stringify(filter),
+                  table: table,
                 }),
               })
                 .then((res) => res.json())
@@ -389,10 +434,10 @@
         body: JSON.stringify({
           data: text,
           metadata: {
-            url: "Commonbase Editor",
-            screen_name: "Bram",
+            title: "Commonbase Editor",
+            author: "You!",
           },
-          embedMeta: false
+          embedMeta: false,
         }),
       })
         .then((res) => res.json())
@@ -406,12 +451,86 @@
     // switch datasource from tweets to books button
     const switchButton = document.createElement("button");
     switchButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" class="svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M17 13C17.5523 13 18 12.5523 18 12C18 11.4477 17.5523 11 17 11C16.4477 11 16 11.4477 16 12C16 12.5523 16.4477 13 17 13Z" fill="#000000" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M17 17H7C4.23858 17 2 14.7614 2 12C2 9.23858 4.23858 7 7 7H17C19.7614 7 22 9.23858 22 12C22 14.7614 19.7614 17 17 17Z" stroke="#000000" stroke-width="1.5"></path></svg>`;
+    switchButton.style.marginLeft = "10px";
+    switchButton.style.marginRight = "10px";
+
+    // append a string with current source
+    const sourceText = document.createElement("span");
+    sourceText.innerHTML = `using: ${source}`;
+    sourceText.style.fontSize = "13px";
 
     switchButton.onclick = () => {
       source = source === "tweets" ? "books" : "tweets";
       alert(`Switched to ${source}`);
-    }
+      sourceText.innerHTML = `${source}`;
+    };
 
     buttonContainer.appendChild(switchButton);
-</script>
+
+    // random button
+    const randomButton = document.createElement("button");
+    randomButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" fill="none" class="svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M7.90039 8.07954C7.90039 3.30678 15.4004 3.30682 15.4004 8.07955C15.4004 11.4886 11.9913 10.8067 11.9913 14.8976" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 19.01L12.01 18.9989" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+
+    randomButton.style.marginLeft = "10px";
+    randomButton.style.marginRight = "10px";
+
+    randomButton.onclick = () => {
+      fetch("http://localhost:3000/wander", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          n: 3,
+          table: "schema",
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          // extract text
+          let offset = 0;
+          appendToHistory("", "wander", data);
+          data.forEach((da) => {
+            console.log(da);
+            const id = Math.random().toString(36).substring(7);
+            const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent:')\">Sources</button>`;
+            // insert at end of quill
+            quill.insertText(quill.getLength(), " ", Quill.sources.USER);
+            quill.insertEmbed(
+              quill.getLength(),
+              "editableSpan",
+              { id: `${id}`, content: da },
+              Quill.sources.USER
+            );
+            // quill.insertEmbed(
+            //   range.index + offset + text.length + 1,
+            //   "customHtml",
+            //   { html: buttonHtml },
+            //   Quill.sources.USER
+            // );
+
+            // set cursor to end of data
+            quill.setSelection(quill.getLength(), Quill.sources.SILENT);
+          });
+          offset += text.length;
+        });
+    };
+
+    buttonContainer.appendChild(randomButton);
+    // buttonContainer.appendChild(sourceText);
+
+    // settings btn
+    const settingsButton = document.createElement("button");
+    settingsButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M19.6224 10.3954L18.5247 7.7448L20 6L18 4L16.2647 5.48295L13.5578 4.36974L12.9353 2H10.981L10.3491 4.40113L7.70441 5.51596L6 4L4 6L5.45337 7.78885L4.3725 10.4463L2 11V13L4.40111 13.6555L5.51575 16.2997L4 18L6 20L7.79116 18.5403L10.397 19.6123L11 22H13L13.6045 19.6132L16.2551 18.5155C16.6969 18.8313 18 20 18 20L20 18L18.5159 16.2494L19.6139 13.598L21.9999 12.9772L22 11L19.6224 10.3954Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+
+    settingsButton.style.marginLeft = "10px";
+    settingsButton.style.marginRight = "10px";
+
+    settingsButton.onclick = () => {
+      const dialog = document.querySelector("dialog");
+      dialog.showModal();  
+    };
+
+    buttonContainer.appendChild(settingsButton);
+  </script>
 </html>
