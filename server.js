@@ -22,8 +22,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const SEARCH_URL_BOOKS = process.env.SEARCH_URL_BOOKS;
-const SEARCH_URL_TWEETS = process.env.SEARCH_URL_TWEETS;
-const RANDOM_URL = process.env.quoordinates_server_random;
+const SEARCH_URL_LOCAL = process.env.SEARCH_URL_LOCAL;
+const RANDOM_URL = process.env.RANDOM_URL;
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -59,17 +59,45 @@ app.post("/insert", (req, res) => {
     });
 });
 
+app.post("/wander", (req, res) => {
+  fetch(RANDOM_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ n: req.body.n, tableName: "schema" }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      console.log("Data from random");
+      console.log(data);
+      res.json(data);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+      res.json({ status: "error" });
+    });
+})
+
 // post body.text to the server
 app.post("/query", (req, res) => {
-  const { text, source } = req.body;
+  const { text, source, filter, table } = req.body;
+  console.log("Querying for " + text);
+  let qBody = {}
 
-  console.log(text);
- 
   let SEARCH_URL = "";
   if (source === "books") {
     SEARCH_URL = SEARCH_URL_BOOKS;
-  } else if (source === "tweets") {
-    SEARCH_URL = SEARCH_URL_TWEETS;
+    qBody = {
+      query: text,
+    }
+  } else {      
+    SEARCH_URL = SEARCH_URL_LOCAL;
+    qBody = {
+      query: text,
+      filter: filter,
+      table: table
+    }
   }
   
   fetch(SEARCH_URL, {
@@ -77,7 +105,7 @@ app.post("/query", (req, res) => {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query: text }),
+    body: JSON.stringify(qBody),
   })
     .then((response) => response.json())
     .then((data) => {
