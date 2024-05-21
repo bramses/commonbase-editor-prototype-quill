@@ -106,7 +106,9 @@
           // Create a footer element
           const footer = document.createElement("blockquote");
           const br = document.createElement("p");
-          footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
+          console.log(value.content);
+          footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author}`; // Set the text inside footer
+          // footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
 
           // Append blockquote and footer to the node
           node.appendChild(blockquote);
@@ -432,8 +434,8 @@
         body: JSON.stringify({
           data: text,
           metadata: {
-            url: "Commonbase Editor",
-            screen_name: "Bram",
+            title: "Commonbase Editor",
+            author: "You!",
           },
           embedMeta: false,
         }),
