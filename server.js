@@ -24,6 +24,7 @@ const __dirname = dirname(__filename);
 const SEARCH_URL_BOOKS = process.env.SEARCH_URL_BOOKS;
 const SEARCH_URL_LOCAL = process.env.SEARCH_URL_LOCAL;
 const RANDOM_URL = process.env.RANDOM_URL;
+const RECORD_URL = process.env.RECORD_URL;
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -34,7 +35,7 @@ app.get("/", (req, res) => {
 app.post("/insert", (req, res) => { 
   console.log(req.body);
 
-  fetch("http://localhost:3550/record", {
+  fetch(RECORD_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
