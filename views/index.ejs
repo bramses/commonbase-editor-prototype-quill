@@ -21,8 +21,30 @@
         fill: blue;
       }
     </style>
+    <style>
+      #loading-wheel {
+        display: none;
+        border: 4px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 4px solid #076834;
+        width: 16px;
+        margin-bottom: -4px;
+        height: 16px;
+        animation: spin 2s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
   </head>
 
+  
   <!-- Create the editor container -->
   <div id="editor">
     <p>Hello World!</p>
@@ -75,6 +97,14 @@
   <!-- Initialize Quill editor -->
 
   <script>
+    function showLoading() {
+      document.getElementById("loading-wheel").style.display = "inline-block";
+    }
+
+    function hideLoading() {
+      document.getElementById("loading-wheel").style.display = "none";
+    }
+
     //Import Quill namespace dependencies
     const BlockEmbed = Quill.import("blots/block/embed");
 
@@ -212,15 +242,17 @@
               const range = quill.getSelection(true);
 
               // get class year from dialog filters (CHQ150)
-              let filter = {}
-              const classYear = document.querySelector("input[name='class-year']:checked").value;
+              let filter = {};
+              const classYear = document.querySelector(
+                "input[name='class-year']:checked"
+              ).value;
               if (classYear === "all") {
                 // no filter
               } else {
                 // filter by class year
                 filter = {
-                  class: classYear
-                }
+                  class: classYear,
+                };
               }
 
               let text = null;
@@ -231,8 +263,11 @@
                 text = quill.getText(range.index, range.length);
               }
 
-              const table = document.querySelector("input[name='table-name']").value;
+              const table = document.querySelector(
+                "input[name='table-name']"
+              ).value;
 
+              showLoading();
               fetch("<%= rootUrl %>/query", {
                 method: "POST",
                 headers: {
@@ -247,6 +282,7 @@
               })
                 .then((res) => res.json())
                 .then((data) => {
+                  hideLoading();
                   // extract text
                   let offset = 0;
                   appendToHistory(text, "search", data);
@@ -282,6 +318,9 @@
                     );
                   });
                   offset += text.length;
+                }).catch((err) => {
+                  hideLoading();
+                  console.error(err);
                 });
             },
           },
@@ -434,6 +473,7 @@
         text = quill.getText(range.index, range.length);
       }
 
+      showLoading();
       fetch("<%= rootUrl %>/insert", {
         method: "POST",
         headers: {
@@ -450,8 +490,12 @@
       })
         .then((res) => res.json())
         .then((data) => {
+          hideLoading();
           console.log(data);
-        });
+        }).catch((err) => {
+          hideLoading();
+          console.error(err);
+        })
     };
 
     buttonContainer.appendChild(embedButton);
@@ -483,6 +527,7 @@
     randomButton.style.marginRight = "10px";
 
     randomButton.onclick = () => {
+      showLoading();
       fetch("<%= rootUrl %>/wander", {
         method: "POST",
         headers: {
@@ -495,6 +540,7 @@
       })
         .then((res) => res.json())
         .then((data) => {
+          hideLoading();
           // extract text
           let offset = 0;
           appendToHistory("", "wander", data);
@@ -521,7 +567,10 @@
             quill.setSelection(quill.getLength(), Quill.sources.SILENT);
           });
           offset += text.length;
-        });
+        }).catch((err) => {
+          hideLoading();
+          console.error(err);
+        })
     };
 
     buttonContainer.appendChild(randomButton);
@@ -536,9 +585,16 @@
 
     settingsButton.onclick = () => {
       const dialog = document.querySelector("dialog");
-      dialog.showModal();  
+      dialog.showModal();
     };
 
     buttonContainer.appendChild(settingsButton);
+
+    const loadingWheel = document.createElement("div");
+    loadingWheel.id = "loading-wheel";
+    buttonContainer.appendChild(loadingWheel);
+
+
+
   </script>
 </html>
