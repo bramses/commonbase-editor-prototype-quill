@@ -10,6 +10,7 @@ import OpenAI from "openai";
 
 const app = express();
 app.use(express.json());
+app.set('view engine', 'ejs');
 dotenv.config();
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -28,8 +29,12 @@ const RECORD_URL = process.env.RECORD_URL;
 
 app.use(express.static(path.join(__dirname, "public")));
 
+// app.get("/", (req, res) => {
+//   res.sendFile(path.join(__dirname, "public", "index.html"));
+// });
+
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.render('index', { rootUrl: process.env.ROOT_URL || "http://localhost:3000" });
 });
 
 app.post("/insert", (req, res) => { 

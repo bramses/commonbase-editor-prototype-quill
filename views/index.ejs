@@ -225,7 +225,7 @@
 
               const table = document.querySelector("input[name='table-name']").value;
 
-              fetch("http://localhost:3000/query", {
+              fetch("<%= rootUrl %>/query", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -426,7 +426,7 @@
         text = quill.getText(range.index, range.length);
       }
 
-      fetch("http://localhost:3000/insert", {
+      fetch("<%= rootUrl %>/insert", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -475,7 +475,7 @@
     randomButton.style.marginRight = "10px";
 
     randomButton.onclick = () => {
-      fetch("http://localhost:3000/wander", {
+      fetch("<%= rootUrl %>/wander", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
