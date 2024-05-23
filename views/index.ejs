@@ -217,7 +217,7 @@
 
               let text = null;
               if (range.length === 0) {
-                text = getSurroundingText();
+                text = getSurroundingText(); // get text of surrounding p at cursor
                 return;
               } else {
                 text = quill.getText(range.index, range.length);
