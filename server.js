@@ -49,7 +49,7 @@ app.post("/insert", (req, res) => {
       data: req.body.data,
       metadata: req.body.metadata,
       embedMeta: req.body.embedMeta,
-      tableName: "schema_2" // TODO: change this to a variable
+      tableName: "schema" // TODO: change this to a variable
     })
   })
     .then((response) => response.json())
