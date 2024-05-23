@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quill Editor</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.quilljs.com/1.3.6/quill.snow.css"
+    />
+
+    <!-- Include stylesheet -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/he/he.js"></script>
+    <style>
+      button:hover .svg-icon {
+        fill: blue;
+      }
+    </style>
+  </head>
+
+  <!-- Create the editor container -->
+  <div id="editor">
+    <p>Hello World!</p>
+    <p><br /></p>
+  </div>
+
+  <dialog>
+    <p>What class would you like to include?</p>
+    <form method="dialog">
+      <fieldset>
+        <legend>Class Year</legend>
+        <!-- <label>
+          <input type="radio" name="class-year" value="1999" />
+          1999
+        </label>
+        <label>
+          <input type="radio" name="class-year" value="2020" />
+          2020
+        </label> -->
+        <label>
+          <input type="radio" name="class-year" value="2024" />
+          2024
+        </label>
+        <label>
+          <input type="radio" name="class-year" value="2018" />
+          2018
+        </label>
+        <label>
+          <input type="radio" name="class-year" value="all" checked />
+          All
+        </label>
+      </fieldset>
+      <!-- table name input field default value = schema -->
+      <label>
+        <span>Table Name</span>
+        <input type="text" name="table-name" value="schema" />
+      </label>
+      <button type="submit">Save</button>
+    </form>
+  </dialog>
+
+  <!-- Include the Quill library -->
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.js"></script>
+
+  <!-- <script src="/scripts/sse-js/lib/sse.js"></script>
+  <script>
+    console.log(SSE)
+  </script> -->
+
+  <!-- Initialize Quill editor -->
+
+  <script>
+    //Import Quill namespace dependencies
+    const BlockEmbed = Quill.import("blots/block/embed");
+
+    class CustomHtmlBlot extends BlockEmbed {
+      static create(value) {
+        let node = super.create();
+        // Create a container for both the text and the button
+
+        node.innerHTML = value.html;
+        return node;
+      }
+
+      static value(node) {
+        return {
+          html: node.innerHTML,
+        };
+      }
+    }
+
+    CustomHtmlBlot.blotName = "customHtml";
+    CustomHtmlBlot.tagName = "div"; // Use a div to wrap the content
+    Quill.register(CustomHtmlBlot);
+
+    const Inline = Quill.import("blots/inline");
+
+    let source = "tweets";
+    class EditableSpan extends Inline {
+      static create(value) {
+        if (source === "tweets") {
+          let node = super.create();
+          node.setAttribute("id", value.id); // Set the ID attribute
+          node.setAttribute("contenteditable", "true"); // Make the span editable
+          // Create a blockquote element child
+          const blockquote = document.createElement("blockquote");
+          blockquote.innerText = value.content.data; // Set the text inside blockquote
+
+          // Create a footer element
+          const footer = document.createElement("blockquote");
+          const br = document.createElement("p");
+          console.log(value.content);
+          footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author}`; // Set the text inside footer
+          // footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
+
+          // Append blockquote and footer to the node
+          node.appendChild(blockquote);
+          node.appendChild(br);
+          node.appendChild(br);
+          node.appendChild(footer);
+          node.appendChild(br);
+
+          return node;
+        } else {
+          let node = super.create();
+          node.setAttribute("id", value.id); // Set the ID attribute
+          node.setAttribute("contenteditable", "true"); // Make the span editable
+
+          // Create a blockquote element child
+          const blockquote = document.createElement("blockquote");
+          blockquote.innerText = value.content.text; // Set the text inside blockquote
+
+          // Create a footer element
+          const footer = document.createElement("blockquote");
+          const br = document.createElement("p");
+          footer.innerText = `-- ${value.content.title} by ${value.content.author}`; // Set the text inside footer
+
+          // Append blockquote and footer to the node
+          node.appendChild(blockquote);
+          node.appendChild(br);
+          node.appendChild(br);
+          node.appendChild(footer);
+          node.appendChild(br);
+
+          return node;
+        }
+      }
+
+      static value(node) {
+        return {
+          id: node.getAttribute("id"),
+          content: node.innerHTML,
+        };
+      }
+    }
+
+    EditableSpan.blotName = "editableSpan";
+    EditableSpan.className = "editable-span";
+    EditableSpan.tagName = "div";
+    Quill.register(EditableSpan);
+
+    class BoxHTML extends BlockEmbed {
+      static create(value) {
+        let node = super.create();
+        node.setAttribute("id", value.id); // Set the ID attribute
+        node.setAttribute("data-text", value.content); // Set the data-text attribute
+        node.setAttribute("contenteditable", "true"); // Make the div non-editable
+        // Create a container div that includes both the editable text and the button
+        node.innerHTML = `<div style="display: flex; align-items: center;">
+                        <span contenteditable="true" style="flex-grow: 1;">${value.content}</span>
+                        <button onclick="alert('Button clicked! ${value.id}')">Click Me</button>
+                      </div>`;
+
+        return node;
+      }
+
+      static value(node) {
+        return {
+          content: node.querySelector('span[contenteditable="true"]').innerHTML,
+          id: node.id,
+        }; // Assuming ID is still relevant for your use case
+      }
+    }
+
+    // get text of surrounding p at cursor
+    function getSurroundingText() {
+      const range = quill.getSelection();
+      const [line, offset] = quill.getLine(range.index);
+      const text = line.domNode.textContent;
+      return text;
+    }
+
+    BoxHTML.blotName = "boxHtml";
+    BoxHTML.tagName = "div"; // Use a div to wrap the content
+    Quill.register(BoxHTML);
+
+    // Initialize Quill
+    const quill = new Quill("#editor", {
+      theme: "snow",
+      modules: {
+        toolbar: {
+          container: [
+            ["customHtmlButton"], // Custom button
+          ],
+          handlers: {
+            customHtmlButton: function () {
+              const range = quill.getSelection(true);
+
+              // get class year from dialog filters (CHQ150)
+              let filter = {}
+              const classYear = document.querySelector("input[name='class-year']:checked").value;
+              if (classYear === "all") {
+                // no filter
+              } else {
+                // filter by class year
+                filter = {
+                  class: classYear
+                }
+              }
+
+              let text = null;
+              if (range.length === 0) {
+                text = getSurroundingText(); // get text of surrounding p at cursor
+                return;
+              } else {
+                text = quill.getText(range.index, range.length);
+              }
+
+              const table = document.querySelector("input[name='table-name']").value;
+
+              fetch("<%= rootUrl %>/query", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  text: text,
+                  source: source,
+                  filter: JSON.stringify(filter),
+                  table: table,
+                }),
+              })
+                .then((res) => res.json())
+                .then((data) => {
+                  // extract text
+                  let offset = 0;
+                  appendToHistory(text, "search", data);
+                  data.forEach((da) => {
+                    const id = Math.random().toString(36).substring(7);
+                    const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent: ${range}')\">Sources</button>`;
+                    // insert at end of quill
+                    quill.insertText(
+                      quill.getLength(),
+                      " ",
+                      Quill.sources.USER
+                    );
+                    quill.insertEmbed(
+                      quill.getLength(),
+                      "editableSpan",
+                      { id: `${id}`, content: da },
+                      Quill.sources.USER
+                    );
+                    // quill.insertEmbed(
+                    //   range.index + offset + text.length + 1,
+                    //   "customHtml",
+                    //   { html: buttonHtml },
+                    //   Quill.sources.USER
+                    // );
+                    quill.setSelection(
+                      range.index +
+                        offset +
+                        range.length +
+                        text.length +
+                        buttonHtml.length +
+                        1,
+                      Quill.sources.SILENT
+                    );
+                  });
+                  offset += text.length;
+                });
+            },
+          },
+        },
+      },
+    });
+
+    // whenever text is changed log all the button ids
+    quill.on("text-change", function (delta, oldDelta, source) {
+      const buttonIds = [];
+      const sem = quill.getSemanticHTML();
+      // parse sem to get button ids
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(sem, "text/html");
+      const buttons = doc.querySelectorAll("button");
+      buttons.forEach((button) => {
+        buttonIds.push(button.id);
+      });
+      // do the same for editable-span ids
+      const spans = doc.querySelectorAll(".editable-span");
+      const spanIds = [];
+      spans.forEach((span) => {
+        spanIds.push(span.id);
+      });
+
+      // if an id in buttons but not in spanIds, remove the button
+      buttonIds.forEach((buttonId) => {
+        const btnIdRm = buttonId.replace("btn-", "");
+        if (!spanIds.includes(btnIdRm)) {
+          // Use includes on the array of ids
+          const button = document.getElementById("btn-" + btnIdRm);
+          if (button) button.remove();
+        }
+      });
+    });
+
+    // Append the button to Quill's toolbar
+    const toolbar = quill.getModule("toolbar");
+    const buttonContainer = document.querySelector(".ql-toolbar");
+    const button = document.createElement("button");
+    button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" x="0px" y="0px" width="auto" height="100" viewBox="0 0 50 50" class="svg-icon">
+<path d="M 21 3 C 11.621094 3 4 10.621094 4 20 C 4 29.378906 11.621094 37 21 37 C 24.710938 37 28.140625 35.804688 30.9375 33.78125 L 44.09375 46.90625 L 46.90625 44.09375 L 33.90625 31.0625 C 36.460938 28.085938 38 24.222656 38 20 C 38 10.621094 30.378906 3 21 3 Z M 21 5 C 29.296875 5 36 11.703125 36 20 C 36 28.296875 29.296875 35 21 35 C 12.703125 35 6 28.296875 6 20 C 6 11.703125 12.703125 5 21 5 Z"></path>
+</svg>`;
+    // // add margin to the button
+    // button.style.marginLeft = "10px";
+    // button.style.marginRight = "10px";
+    // // add border to the button
+    // button.style.border = "1px solid black";
+    button.onclick = () => toolbar.handlers.customHtmlButton();
+    buttonContainer.appendChild(button);
+
+    // create another button for sse
+    const sseButton = document.createElement("button");
+    sseButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="auto" height="100" stroke-width="1.5" fill="currentColor" class="svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M10 12H5C4.44772 12 4 11.5523 4 11V7.5C4 6.94772 4.44772 6.5 5 6.5H9C9.55228 6.5 10 6.94772 10 7.5V12ZM10 12C10 14.5 9 16 6 17.5" stroke="#000000" stroke-width="1.5" stroke-linecap="round"></path><path d="M20 12H15C14.4477 12 14 11.5523 14 11V7.5C14 6.94772 14.4477 6.5 15 6.5H19C19.5523 6.5 20 6.94772 20 7.5V12ZM20 12C20 14.5 19 16 16 17.5" stroke="#000000" stroke-width="1.5" stroke-linecap="round"></path></svg>`;
+    sseButton.style.marginLeft = "10px";
+    sseButton.style.marginRight = "10px";
+    // EventSource = SSE;
+    sseButton.onclick = () => {
+      console.log("SSE button clicked");
+
+      // make a confirmation dialog
+      const confirm = window.confirm(
+        "Are you sure you want to use Server Sent Events?"
+      );
+
+      if (!confirm) {
+        return;
+      }
+
+      const highlightedText = quill.getText(quill.getSelection());
+
+      var eventSource = new EventSource("/events?payload=" + highlightedText, {
+        withCredentials: true,
+      });
+      const end = quill.getLength();
+      let cursorEnd = end;
+      let fullMessage = "";
+      eventSource.onmessage = function (event) {
+        // write at end of file
+
+        // insert text at cursor position
+        quill.insertText(cursorEnd, event.data.replaceAll('"', ""));
+        // set cursor to end of data
+        quill.setSelection(cursorEnd + event.data.length);
+        cursorEnd += event.data.length - 2;
+        fullMessage += event.data;
+        // console.log(event.data);
+        // console.log(cursorEnd);
+      };
+
+      eventSource.onerror = function (event) {
+        if (eventSource.readyState == EventSource.CLOSED) {
+          console.log("EventSource closed:", event);
+          console.log(fullMessage);
+
+          appendToHistory(highlightedText, "context", fullMessage);
+          eventSource.close();
+        } else {
+          console.error("EventSource failed:", event);
+          eventSource.close();
+        }
+      };
+
+      // eventSource.onopen = function (event) {
+      //   console.log("EventSource opened:", event);
+      // };
+
+      // eventSource.onclose = function (event) {
+      //   console.log("EventSource closed:", event);
+      //   console.log(fullMessage);
+
+      //   appendToHistory(highlightedText, 'context', fullMessage);
+      // };
+    };
+    buttonContainer.appendChild(sseButton);
+
+    // add a button that allows user to see highlighted text
+    const history = [];
+
+    const appendToHistory = (cause, action, result) => {
+      history.push({ cause, action, result });
+    };
+
+    // const historyButton = document.createElement("button");
+    // historyButton.innerHTML = "History";
+    // historyButton.style.marginLeft = "10px";
+    // historyButton.style.marginRight = "10px";
+    // historyButton.onclick = () => {
+    //   const range = quill.getSelection();
+    //   const text = quill.getText(range.index, range.length);
+    //   alert("check console for history");
+    //   console.log(history);
+    // };
+
+    // buttonContainer.appendChild(historyButton);
+
+    // add a embed button
+    const embedButton = document.createElement("button");
+    embedButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="auto" height="100" stroke-width="1.5" viewBox="0 0 24 24" fill="none" class="svg-icon" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M8 12H12M16 12H12M12 12V8M12 12V16" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+    embedButton.style.marginLeft = "10px";
+    embedButton.style.marginRight = "10px";
+
+    embedButton.onclick = () => {
+      const range = quill.getSelection(true);
+      let text = null;
+      if (range.length === 0) {
+        text = getSurroundingText();
+        return;
+      } else {
+        text = quill.getText(range.index, range.length);
+      }
+
+      fetch("<%= rootUrl %>/insert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          data: text,
+          metadata: {
+            title: "Commonbase Editor",
+            author: "You!",
+          },
+          embedMeta: false,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log(data);
+        });
+    };
+
+    buttonContainer.appendChild(embedButton);
+
+    // switch datasource from tweets to books button
+    // const switchButton = document.createElement("button");
+    // switchButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" class="svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M17 13C17.5523 13 18 12.5523 18 12C18 11.4477 17.5523 11 17 11C16.4477 11 16 11.4477 16 12C16 12.5523 16.4477 13 17 13Z" fill="#000000" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M17 17H7C4.23858 17 2 14.7614 2 12C2 9.23858 4.23858 7 7 7H17C19.7614 7 22 9.23858 22 12C22 14.7614 19.7614 17 17 17Z" stroke="#000000" stroke-width="1.5"></path></svg>`;
+    // switchButton.style.marginLeft = "10px";
+    // switchButton.style.marginRight = "10px";
+
+    // // append a string with current source
+    // const sourceText = document.createElement("span");
+    // sourceText.innerHTML = `using: ${source}`;
+    // sourceText.style.fontSize = "13px";
+
+    // switchButton.onclick = () => {
+    //   source = source === "tweets" ? "books" : "tweets";
+    //   alert(`Switched to ${source}`);
+    //   sourceText.innerHTML = `${source}`;
+    // };
+
+    // buttonContainer.appendChild(switchButton);
+
+    // random button
+    const randomButton = document.createElement("button");
+    randomButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" fill="none" class="svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M7.90039 8.07954C7.90039 3.30678 15.4004 3.30682 15.4004 8.07955C15.4004 11.4886 11.9913 10.8067 11.9913 14.8976" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 19.01L12.01 18.9989" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+
+    randomButton.style.marginLeft = "10px";
+    randomButton.style.marginRight = "10px";
+
+    randomButton.onclick = () => {
+      fetch("<%= rootUrl %>/wander", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          n: 3,
+          table: "schema",
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          // extract text
+          let offset = 0;
+          appendToHistory("", "wander", data);
+          data.forEach((da) => {
+            console.log(da);
+            const id = Math.random().toString(36).substring(7);
+            const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent:')\">Sources</button>`;
+            // insert at end of quill
+            quill.insertText(quill.getLength(), " ", Quill.sources.USER);
+            quill.insertEmbed(
+              quill.getLength(),
+              "editableSpan",
+              { id: `${id}`, content: da },
+              Quill.sources.USER
+            );
+            // quill.insertEmbed(
+            //   range.index + offset + text.length + 1,
+            //   "customHtml",
+            //   { html: buttonHtml },
+            //   Quill.sources.USER
+            // );
+
+            // set cursor to end of data
+            quill.setSelection(quill.getLength(), Quill.sources.SILENT);
+          });
+          offset += text.length;
+        });
+    };
+
+    buttonContainer.appendChild(randomButton);
+    // buttonContainer.appendChild(sourceText);
+
+    // settings btn
+    const settingsButton = document.createElement("button");
+    settingsButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M19.6224 10.3954L18.5247 7.7448L20 6L18 4L16.2647 5.48295L13.5578 4.36974L12.9353 2H10.981L10.3491 4.40113L7.70441 5.51596L6 4L4 6L5.45337 7.78885L4.3725 10.4463L2 11V13L4.40111 13.6555L5.51575 16.2997L4 18L6 20L7.79116 18.5403L10.397 19.6123L11 22H13L13.6045 19.6132L16.2551 18.5155C16.6969 18.8313 18 20 18 20L20 18L18.5159 16.2494L19.6139 13.598L21.9999 12.9772L22 11L19.6224 10.3954Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+
+    settingsButton.style.marginLeft = "10px";
+    settingsButton.style.marginRight = "10px";
+
+    settingsButton.onclick = () => {
+      const dialog = document.querySelector("dialog");
+      dialog.showModal();  
+    };
+
+    buttonContainer.appendChild(settingsButton);
+  </script>
+</html>
