@@ -145,7 +145,7 @@
           const footer = document.createElement("blockquote");
           const br = document.createElement("p");
           console.log(value.content);
-          footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author}`; // Set the text inside footer
+          footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author} (Class of ${value.content.metadata.class})`; // Set the text inside footer
           // footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
 
           // Append blockquote and footer to the node
