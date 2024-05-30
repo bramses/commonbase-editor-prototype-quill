@@ -54,7 +54,8 @@ app.post("/insert", (req, res) => {
   })
     .then((response) => response.json())
     .then((data) => {
-      if (data.status !== 200) {
+      console.log("Data from insert", data);
+      if (data.error !== undefined) {
         throw new Error("Error inserting data " + JSON.stringify(data));
       }
       res.status(200).json(data);

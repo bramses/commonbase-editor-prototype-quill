@@ -486,6 +486,9 @@
         text = quill.getText(range.index, range.length);
       }
 
+      // create a dialog form to get name of author
+      const author = prompt("Enter the name of the author", "Anonymous");
+
       showLoading();
       fetch("<%= rootUrl %>/insert", {
         method: "POST",
@@ -496,7 +499,7 @@
           data: text,
           metadata: {
             title: "Commonbase Editor",
-            author: "You!",
+            author: author,
           },
           embedMeta: false,
         }),
@@ -504,6 +507,7 @@
         .then((res) => res.json())
         .then((data) => {
           hideLoading();
+          alert("Successfully embedded text into Commonbase");
           console.log(data);
         }).catch((err) => {
           hideLoading();
