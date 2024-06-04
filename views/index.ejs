@@ -44,7 +44,6 @@
     </style>
   </head>
 
-  
   <!-- Create the editor container -->
   <div id="editor">
     <p>Hello World!</p>
@@ -256,11 +255,17 @@
               }
 
               let text = null;
+              let textObj = {};
               if (range.length === 0) {
                 text = getSurroundingText(); // get text of surrounding p at cursor
                 return;
               } else {
                 text = quill.getText(range.index, range.length);
+                textObj = {
+                  data: text,
+                  index: range.index,
+                  length: range.length,
+                };
               }
 
               const table = document.querySelector(
@@ -285,8 +290,41 @@
                   hideLoading();
                   // extract text
                   let offset = 0;
-                  appendToHistory(text, "search", data);
+                  appendToHistory(textObj, "search", data);
                   data.forEach((da) => {
+                    const text = da.data;
+                    // const source = 
+                    // check if text already exists in quill as a full block
+                    let blockquotes = quill
+                      .getSemanticHTML()
+                      .match(/<blockquote>.*?<\/blockquote>/g);
+
+                    if (!blockquotes) {
+                      blockquotes = [];
+                    }
+
+                    for (let i = 0; i < blockquotes.length; i+= 2) {
+                      // check for exact match
+                      const blockquote = blockquotes[i];
+                      const citation = blockquotes[i + 1];
+                      // <blockquote>text</blockquote>
+                      const blockquoteText = blockquote.match(
+                        /<blockquote>(.*?)<\/blockquote>/
+                      )[1];
+                      const citationText = citation.match(
+                        /<blockquote>(.*?)<\/blockquote>/
+                      )[1];
+                      const citationStr = `-- ${da.metadata.title} by ${da.metadata.author} (Class of ${da.metadata.class})`.trim();
+                      // console.log(citationStr);
+                      // console.log(citationText);
+
+                      if (blockquoteText.trim() === text.trim() && citationText.trim() === citationStr) { 
+                        return;
+                      }
+                    }
+                    // if (quill.getText().includes(text)) {
+                    //   return;
+                    // }
                     const id = Math.random().toString(36).substring(7);
                     const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent: ${range}')\">Sources</button>`;
                     // insert at end of quill
@@ -318,7 +356,8 @@
                     );
                   });
                   offset += text.length;
-                }).catch((err) => {
+                })
+                .catch((err) => {
                   hideLoading();
                   console.error(err);
                 });
@@ -373,7 +412,10 @@
     buttonContainer.appendChild(button);
 
     button.onmouseover = () => {
-      button.setAttribute('title', 'Search for the selected text in our Commonbase');
+      button.setAttribute(
+        "title",
+        "Search for the selected text in our Commonbase"
+      );
     };
 
     // create another button for sse
@@ -383,7 +425,10 @@
     sseButton.style.marginRight = "10px";
 
     sseButton.onmouseover = () => {
-      sseButton.setAttribute('title', 'Use GPT-4o to add context to the selected text');
+      sseButton.setAttribute(
+        "title",
+        "Use GPT-4o to add context to the selected text"
+      );
     };
 
     // EventSource = SSE;
@@ -425,7 +470,7 @@
           console.log("EventSource closed:", event);
           console.log(fullMessage);
 
-          appendToHistory(highlightedText, "context", fullMessage);
+          // appendToHistory(highlightedText, "context", fullMessage);
           eventSource.close();
         } else {
           console.error("EventSource failed:", event);
@@ -453,18 +498,91 @@
       history.push({ cause, action, result });
     };
 
-    // const historyButton = document.createElement("button");
-    // historyButton.innerHTML = "History";
-    // historyButton.style.marginLeft = "10px";
-    // historyButton.style.marginRight = "10px";
-    // historyButton.onclick = () => {
+    const historyButton = document.createElement("button");
+    historyButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M9 2L15 2" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 10L12 14" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 22C16.4183 22 20 18.4183 20 14C20 9.58172 16.4183 6 12 6C7.58172 6 4 9.58172 4 14C4 18.4183 7.58172 22 12 22Z" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+
+    historyButton.style.marginLeft = "10px";
+    historyButton.style.marginRight = "10px";
+    historyButton.onclick = () => {
+      for (let i = 0; i < history.length; i++) {
+        console.log(history[i]);
+        const range = history[i].cause.index;
+        const length = history[i].cause.length;
+        const text = history[i].cause.text;
+
+        // highlight text w <mark> tag
+        quill.formatText(range, length, "background", "yellow");
+
+        // add onclick to highlight to pop up a dialog with the history
+        const parentSpan = quill.getLeaf(range)[0].parent;
+        parentSpan.domNode.onclick = () => {
+          // create a dialog
+          const dialog = document.createElement("dialog");
+          dialog.innerHTML = "<h1>History</h1>";
+          history.forEach((h) => {
+            const p = document.createElement("p");
+            p.innerHTML = `${JSON.stringify(h.cause)} -> ${
+              h.action
+            } -> ${JSON.stringify(h.result)}`;
+            dialog.appendChild(p);
+          });
+
+          // TODO get sources and connect to correct histories
+
+          const closeButton = document.createElement("button");
+          closeButton.innerHTML = "Close";
+          closeButton.onclick = () => {
+            dialog.close();
+          };
+          dialog.appendChild(closeButton);
+
+          // Add the dialog to the document
+          document.body.appendChild(dialog);
+
+          // Now you can show the dialog
+          dialog.showModal();
+        };
+      }
+    };
     //   const range = quill.getSelection();
     //   const text = quill.getText(range.index, range.length);
-    //   alert("check console for history");
+    //   // highlight text w <mark> tag
+    //   const start = range.index;
+    //   const end = range.index + range.length;
+    //   quill.formatText(start, end, "background", "yellow");
+    //   // add onclick to highlight to pop up a dialog with the history
+    //   const parentSpan = quill.getLeaf(start)[0].parent;
+    //   console.log(parentSpan);
+    //   parentSpan.domNode.onclick = () => {
+    //     // create a dialog
+    //     const dialog = document.createElement("dialog");
+    //     dialog.innerHTML = "<h1>History</h1>";
+    //     history.forEach((h) => {
+    //       const p = document.createElement("p");
+    //       p.innerHTML = `${h.cause} -> ${h.action} -> ${h.result}`;
+    //       dialog.appendChild(p);
+    //     });
+
+    //     // TODO get sources and connect to correct histories
+
+    //     const closeButton = document.createElement("button");
+    //     closeButton.innerHTML = "Close";
+    //     closeButton.onclick = () => {
+    //       dialog.close();
+    //     };
+    //     dialog.appendChild(closeButton);
+
+    //     // Add the dialog to the document
+    //     document.body.appendChild(dialog);
+
+    //     // Now you can show the dialog
+    //     dialog.showModal();
+    // };
+
     //   console.log(history);
     // };
 
-    // buttonContainer.appendChild(historyButton);
+    buttonContainer.appendChild(historyButton);
 
     // add a embed button
     const embedButton = document.createElement("button");
@@ -473,8 +591,14 @@
     embedButton.style.marginRight = "10px";
 
     embedButton.onmouseover = () => {
-      embedButton.setAttribute('title', 'Embed the selected text into our Commonbase');
+      embedButton.setAttribute(
+        "title",
+        "Embed the selected text into our Commonbase"
+      );
     };
+
+    let lastAuthor = "Anonymous";
+    let lastTitle = "Untitled";
 
     embedButton.onclick = () => {
       const range = quill.getSelection(true);
@@ -487,7 +611,11 @@
       }
 
       // create a dialog form to get name of author
-      const author = prompt("Enter the name of the author", "Anonymous");
+      const author = prompt("Enter the name of the author", lastAuthor);
+      const title = prompt("Enter the title of the text", lastTitle);
+
+      lastAuthor = author;
+      lastTitle = title;
 
       showLoading();
       fetch("<%= rootUrl %>/insert", {
@@ -498,7 +626,7 @@
         body: JSON.stringify({
           data: text,
           metadata: {
-            title: "Commonbase Editor",
+            title: title,
             author: author,
           },
           embedMeta: false,
@@ -509,10 +637,11 @@
           hideLoading();
           alert("Successfully embedded text into Commonbase");
           console.log(data);
-        }).catch((err) => {
+        })
+        .catch((err) => {
           hideLoading();
           console.error(err);
-        })
+        });
     };
 
     buttonContainer.appendChild(embedButton);
@@ -545,7 +674,10 @@
 
     // add hover tooltip
     randomButton.onmouseover = () => {
-      randomButton.setAttribute('title', 'Get three random data points from our Commonbase');
+      randomButton.setAttribute(
+        "title",
+        "Get three random data points from our Commonbase"
+      );
     };
 
     randomButton.onclick = () => {
@@ -565,7 +697,7 @@
           hideLoading();
           // extract text
           let offset = 0;
-          appendToHistory("", "wander", data);
+          // appendToHistory("", "wander", data);
           data.forEach((da) => {
             console.log(da);
             const id = Math.random().toString(36).substring(7);
@@ -589,10 +721,11 @@
             quill.setSelection(quill.getLength(), Quill.sources.SILENT);
           });
           offset += text.length;
-        }).catch((err) => {
+        })
+        .catch((err) => {
           hideLoading();
           console.error(err);
-        })
+        });
     };
 
     buttonContainer.appendChild(randomButton);
@@ -606,7 +739,10 @@
     settingsButton.style.marginRight = "10px";
 
     settingsButton.onmouseover = () => {
-      settingsButton.setAttribute('title', 'Open settings dialog and add a class year filter');
+      settingsButton.setAttribute(
+        "title",
+        "Open settings dialog and add a class year filter"
+      );
     };
 
     settingsButton.onclick = () => {
@@ -619,8 +755,5 @@
     const loadingWheel = document.createElement("div");
     loadingWheel.id = "loading-wheel";
     buttonContainer.appendChild(loadingWheel);
-
-
-
   </script>
 </html>
