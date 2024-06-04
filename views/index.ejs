@@ -15,6 +15,8 @@
       href="https://cdn.jsdelivr.net/npm/quill@2.0.1/dist/quill.snow.css"
       rel="stylesheet"
     />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/he/1.2.0/he.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/he/he.js"></script>
     <style>
       button:hover .svg-icon {
@@ -293,7 +295,7 @@
                   appendToHistory(textObj, "search", data);
                   data.forEach((da) => {
                     const text = da.data;
-                    // const source = 
+                    // const source =
                     // check if text already exists in quill as a full block
                     let blockquotes = quill
                       .getSemanticHTML()
@@ -303,7 +305,15 @@
                       blockquotes = [];
                     }
 
-                    for (let i = 0; i < blockquotes.length; i+= 2) {
+                    function encodeTextToHtml(input) {
+                      return input
+                        .replace(/>/g, "&gt;")
+                        .replace(/'/g, "&#39;")
+                        .replace(/\n/g, ""); // remove newlines
+                    }
+
+                    console.log(blockquotes.length);
+                    for (let i = 0; i < blockquotes.length - 1; i += 2) {
                       // check for exact match
                       const blockquote = blockquotes[i];
                       const citation = blockquotes[i + 1];
@@ -311,14 +321,45 @@
                       const blockquoteText = blockquote.match(
                         /<blockquote>(.*?)<\/blockquote>/
                       )[1];
-                      const citationText = citation.match(
+                      let citationText = citation.match(
                         /<blockquote>(.*?)<\/blockquote>/
                       )[1];
-                      const citationStr = `-- ${da.metadata.title} by ${da.metadata.author} (Class of ${da.metadata.class})`.trim();
-                      // console.log(citationStr);
-                      // console.log(citationText);
+                      // remove (Class of ...) or (Class of undefined) from citationText with regex
+                      const classRegex = / \(Class of .*\)/;
+                      const classMatch = citationText.match(classRegex);
+                      if (classMatch) {
+                        citationText = citationText.replace(classMatch[0], "");
+                      }
 
-                      if (blockquoteText.trim() === text.trim() && citationText.trim() === citationStr) { 
+                      const citationStr =
+                        `-- ${da.metadata.title} by ${da.metadata.author}`.trim();
+
+                      // console.log(`BQ`)
+                      // console.log(blockquoteText);
+                      // console.log(text);
+                      const encodedText = encodeTextToHtml(text);
+                      // console.log(encodedText);
+                      // console.log(`CITATION`)
+                      // console.log(citationText);
+                      // console.log(citationStr);
+                      // console.log(`END`)
+                      if (citationText.trim() === citationStr) {
+                        console.log(`BQ`);
+                        console.log(blockquoteText);
+                        console.log(text);
+                        console.log(encodedText);
+                        console.log(`CITATION`);
+                        console.log(citationText);
+                        console.log(citationStr);
+                        console.log(encodedText.trim() === blockquoteText.trim());
+                        console.log(`END`);
+                      }
+
+                      if (
+                        encodedText.trim() === blockquoteText.trim() &&
+                        citationText.trim() === citationStr
+                      ) {
+                        console.log("Already exists" + blockquoteText);
                         return;
                       }
                     }
@@ -327,33 +368,43 @@
                     // }
                     const id = Math.random().toString(36).substring(7);
                     const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent: ${range}')\">Sources</button>`;
-                    // insert at end of quill
-                    quill.insertText(
-                      quill.getLength(),
-                      " ",
-                      Quill.sources.USER
-                    );
-                    quill.insertEmbed(
-                      quill.getLength(),
-                      "editableSpan",
-                      { id: `${id}`, content: da },
-                      Quill.sources.USER
-                    );
-                    // quill.insertEmbed(
-                    //   range.index + offset + text.length + 1,
-                    //   "customHtml",
-                    //   { html: buttonHtml },
-                    //   Quill.sources.USER
-                    // );
-                    quill.setSelection(
-                      range.index +
-                        offset +
-                        range.length +
-                        text.length +
-                        buttonHtml.length +
-                        1,
-                      Quill.sources.SILENT
-                    );
+
+                    // get end of current block user is in with cursor
+                    const cursor = quill.getSelection().index;
+                    const parent = quill.getLeaf(cursor)[0].parent;
+                    // special case if parent is blockquote and right under is another blockquote
+                    if (parent.domNode.tagName === "BLOCKQUOTE") {
+                      
+                      const next = parent.next;
+                      if (next && next.domNode.tagName === "BLOCKQUOTE") {
+                        // insert after next
+                        quill.insertEmbed(
+                          next.offset() + next.length(),
+                          "editableSpan",
+                          { id: `${id}`, content: da },
+                          Quill.sources.USER
+                        );
+                        quill.setSelection(next.offset() + next.length() + 1);
+                        return;
+                      }
+                    } else {
+                      const parentIndex = quill.getIndex(parent);
+                      const parentLength = parent.length();
+                      const parentEnd = parentIndex + parentLength;
+
+                      // insert at end of quill
+                      quill.insertText(parentEnd, " ", Quill.sources.USER);
+                      quill.insertEmbed(
+                        parentEnd + 1,
+                        "editableSpan",
+                        { id: `${id}`, content: da },
+                        Quill.sources.USER
+                      );
+                     
+                      quill.setSelection(parentEnd + 1, Quill.sources.SILENT);
+                    }
+
+                   
                   });
                   offset += text.length;
                 })
