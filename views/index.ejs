@@ -78,10 +78,10 @@
           All
         </label>
       </fieldset>
-      <!-- table name input field default value = schema -->
+      <!-- table name input field default value = schema from ejs -->
       <label>
         <span>Table Name</span>
-        <input type="text" name="table-name" value="schema" />
+        <input type="text" name="table-name" value="<%= table %>" /> <!-- default value is schema_2 for local tests -->
       </label>
       <button type="submit">Save</button>
     </form>
@@ -134,6 +134,11 @@
     let source = "tweets";
     class EditableSpan extends Inline {
       static create(value) {
+        console.log(value);
+        if (value.content === undefined || value.content === null || value.content === "") {
+          console.error("Content is empty");
+          return;
+        }
         if (source === "tweets") {
           let node = super.create();
           node.setAttribute("id", value.id); // Set the ID attribute
@@ -146,8 +151,13 @@
           const footer = document.createElement("blockquote");
           const br = document.createElement("p");
           console.log(value.content);
-          footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author} (Class of ${value.content.metadata.class})`; // Set the text inside footer
+          if (value.content.metadata.class === undefined) {
+            footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author}`; // Set the text inside footer
+          } else {
+            footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author} (Class of ${value.content.metadata.class})`; // Set the text inside footer
           // footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
+          }
+          
 
           // Append blockquote and footer to the node
           node.appendChild(blockquote);
@@ -197,6 +207,7 @@
 
     class BoxHTML extends BlockEmbed {
       static create(value) {
+       
         let node = super.create();
         node.setAttribute("id", value.id); // Set the ID attribute
         node.setAttribute("data-text", value.content); // Set the data-text attribute
@@ -268,11 +279,17 @@
                   index: range.index,
                   length: range.length,
                 };
+                // highlight the selected text as pale yellow
+                quill.formatText(range.index, range.length, "background", "#ffffbf"); 
               }
 
               const table = document.querySelector(
                 "input[name='table-name']"
               ).value;
+
+              const userSelectedCursor = quill.getSelection().index;
+              const userSelectedParent =
+                quill.getLeaf(userSelectedCursor)[0].parent;
 
               showLoading();
               fetch("<%= rootUrl %>/query", {
@@ -312,7 +329,6 @@
                         .replace(/\n/g, ""); // remove newlines
                     }
 
-                    console.log(blockquotes.length);
                     for (let i = 0; i < blockquotes.length - 1; i += 2) {
                       // check for exact match
                       const blockquote = blockquotes[i];
@@ -331,18 +347,23 @@
                         citationText = citationText.replace(classMatch[0], "");
                       }
 
+                      // remove spans like <span style="background-color: rgb(255, 255, 191);"> from blockquoteText
+                      const blockquoteTextNoSpan = blockquoteText.replace(
+                        /<span.*?>(.*?)<\/span>/g,
+                        "$1"
+                      );
+                      const textNoSpan = text.replace(
+                        /<span.*?>(.*?)<\/span>/g,
+                        "$1"
+                      );
+
+
+
                       const citationStr =
                         `-- ${da.metadata.title} by ${da.metadata.author}`.trim();
 
-                      // console.log(`BQ`)
-                      // console.log(blockquoteText);
-                      // console.log(text);
-                      const encodedText = encodeTextToHtml(text);
-                      // console.log(encodedText);
-                      // console.log(`CITATION`)
-                      // console.log(citationText);
-                      // console.log(citationStr);
-                      // console.log(`END`)
+                      const encodedText = encodeTextToHtml(textNoSpan);
+    
                       if (citationText.trim() === citationStr) {
                         console.log(`BQ`);
                         console.log(blockquoteText);
@@ -351,12 +372,14 @@
                         console.log(`CITATION`);
                         console.log(citationText);
                         console.log(citationStr);
-                        console.log(encodedText.trim() === blockquoteText.trim());
+                        console.log(
+                          encodedText.trim() === blockquoteText.trim()
+                        );
                         console.log(`END`);
                       }
 
                       if (
-                        encodedText.trim() === blockquoteText.trim() &&
+                        encodedText.trim() === blockquoteTextNoSpan.trim() &&
                         citationText.trim() === citationStr
                       ) {
                         console.log("Already exists" + blockquoteText);
@@ -373,19 +396,49 @@
                     const cursor = quill.getSelection().index;
                     const parent = quill.getLeaf(cursor)[0].parent;
                     // special case if parent is blockquote and right under is another blockquote
-                    if (parent.domNode.tagName === "BLOCKQUOTE") {
-                      
-                      const next = parent.next;
+                
+                    if (userSelectedParent.domNode.tagName === "BLOCKQUOTE" || (userSelectedParent.domNode.tagName === "SPAN" && userSelectedParent.domNode.parentElement.tagName === "BLOCKQUOTE")) {
+                      console.log("parent is blockquote");
+                      let next = userSelectedParent.next;
+                      if (next == null) {
+                        next = userSelectedParent.parent.next;
+                      }
+                      console.log(next);
                       if (next && next.domNode.tagName === "BLOCKQUOTE") {
-                        // insert after next
+                        // add offset of span highlight
+                        // const lenOfSpan = `<span style="background-color: rgb(255, 255, 191);> </span>`.length;
+
+
+                        // insert after next 
                         quill.insertEmbed(
-                          next.offset() + next.length(),
+                          next.offset() + next.length() + 1,
                           "editableSpan",
                           { id: `${id}`, content: da },
                           Quill.sources.USER
                         );
                         quill.setSelection(next.offset() + next.length() + 1);
-                        return;
+                      } else if (next && next.domNode.tagName === "SPAN") {
+                        console.log("next is span");
+                        const nextNext = next.offset() + next.length() + 1;
+                        console.log(nextNext);
+                        // insert after next 
+                        quill.insertEmbed(
+                          next.offset() + next.length() + 1,
+                          "editableSpan",
+                          { id: `${id}`, content: da },
+                          Quill.sources.USER
+                        );
+                        quill.setSelection(next.offset() + next.length() + 1);
+                      } else {
+                        // insert at end of quill
+                        quill.insertText(quill.getLength(), " ", Quill.sources.USER);
+                        quill.insertEmbed(
+                          quill.getLength(),
+                          "editableSpan",
+                          { id: `${id}`, content: da },
+                          Quill.sources.USER
+                        );
+                        quill.setSelection(quill.getLength(), Quill.sources.SILENT);
                       }
                     } else {
                       const parentIndex = quill.getIndex(parent);
@@ -393,20 +446,28 @@
                       const parentEnd = parentIndex + parentLength;
 
                       // insert at end of quill
+                      console.log("inserting at end " + text);
                       quill.insertText(parentEnd, " ", Quill.sources.USER);
-                      quill.insertEmbed(
+                      const rs = quill.insertEmbed(
                         parentEnd + 1,
                         "editableSpan",
                         { id: `${id}`, content: da },
                         Quill.sources.USER
                       );
-                     
-                      quill.setSelection(parentEnd + 1, Quill.sources.SILENT);
-                    }
+                      // iterate through rs and get length of text by reducing r.insert
+                      // set cursor to end of data
+                      for (let i = 0; i < rs.ops.length; i++) {
+                        const text = rs.ops[i].insert;
+                        if (typeof text === "string") {
+                          offset += text.length;
+                        }
+                      }
 
-                   
+                      quill.setSelection(parentEnd + 1 + offset, Quill.sources.SILENT);
+
+                    }
                   });
-                  offset += text.length;
+                  
                 })
                 .catch((err) => {
                   hideLoading();
@@ -659,6 +720,8 @@
         return;
       } else {
         text = quill.getText(range.index, range.length);
+        // highlight the selected text as pale green
+        quill.formatText(range.index, range.length, "background", "#c8f7c5");
       }
 
       // create a dialog form to get name of author
@@ -698,23 +761,23 @@
     buttonContainer.appendChild(embedButton);
 
     // switch datasource from tweets to books button
-    // const switchButton = document.createElement("button");
-    // switchButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" class="svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M17 13C17.5523 13 18 12.5523 18 12C18 11.4477 17.5523 11 17 11C16.4477 11 16 11.4477 16 12C16 12.5523 16.4477 13 17 13Z" fill="#000000" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M17 17H7C4.23858 17 2 14.7614 2 12C2 9.23858 4.23858 7 7 7H17C19.7614 7 22 9.23858 22 12C22 14.7614 19.7614 17 17 17Z" stroke="#000000" stroke-width="1.5"></path></svg>`;
-    // switchButton.style.marginLeft = "10px";
-    // switchButton.style.marginRight = "10px";
+    const switchButton = document.createElement("button");
+    switchButton.innerHTML = `<?xml version="1.0" encoding="UTF-8"?><svg width="24px" height="24px" stroke-width="1.5" class="svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#000000"><path d="M17 13C17.5523 13 18 12.5523 18 12C18 11.4477 17.5523 11 17 11C16.4477 11 16 11.4477 16 12C16 12.5523 16.4477 13 17 13Z" fill="#000000" stroke="#000000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M17 17H7C4.23858 17 2 14.7614 2 12C2 9.23858 4.23858 7 7 7H17C19.7614 7 22 9.23858 22 12C22 14.7614 19.7614 17 17 17Z" stroke="#000000" stroke-width="1.5"></path></svg>`;
+    switchButton.style.marginLeft = "10px";
+    switchButton.style.marginRight = "10px";
 
-    // // append a string with current source
-    // const sourceText = document.createElement("span");
-    // sourceText.innerHTML = `using: ${source}`;
-    // sourceText.style.fontSize = "13px";
+    // append a string with current source
+    const sourceText = document.createElement("span");
+    sourceText.innerHTML = `using: ${source}`;
+    sourceText.style.fontSize = "13px";
 
-    // switchButton.onclick = () => {
-    //   source = source === "tweets" ? "books" : "tweets";
-    //   alert(`Switched to ${source}`);
-    //   sourceText.innerHTML = `${source}`;
-    // };
+    switchButton.onclick = () => {
+      source = source === "tweets" ? "books" : "tweets";
+      alert(`Switched to ${source}`);
+      sourceText.innerHTML = `${source}`;
+    };
 
-    // buttonContainer.appendChild(switchButton);
+    buttonContainer.appendChild(switchButton);
 
     // random button
     const randomButton = document.createElement("button");
@@ -752,7 +815,7 @@
           data.forEach((da) => {
             console.log(da);
             const id = Math.random().toString(36).substring(7);
-            const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent:')\">Sources</button>`;
+            // const buttonHtml = `<button id="btn-${id}" onclick=\"alert('parent:')\">Sources</button>`;
             // insert at end of quill
             quill.insertText(quill.getLength(), " ", Quill.sources.USER);
             quill.insertEmbed(
@@ -802,6 +865,19 @@
     };
 
     buttonContainer.appendChild(settingsButton);
+
+    // append selected_table as span
+    const selectedTable = document.createElement("span");
+    let table = document.querySelector("input[name='table-name']").value;
+    // on change of table name, update the span
+    document.querySelector("input[name='table-name']").onchange = (e) => {
+      table = e.target.value;
+      selectedTable.innerHTML = `Selected Table: ${table}`;
+    };
+    selectedTable.innerHTML = `Selected Table: ${table}`;
+    selectedTable.style.fontSize = "13px";
+    buttonContainer.appendChild(selectedTable);
+
 
     const loadingWheel = document.createElement("div");
     loadingWheel.id = "loading-wheel";

@@ -13,6 +13,8 @@ app.use(express.json());
 app.set('view engine', 'ejs');
 dotenv.config();
 
+const TABLE_NAME = process.env.TABLE_NAME || "schema";
+console.log("Table name is " + TABLE_NAME);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const openai = new OpenAI({
@@ -34,7 +36,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // });
 
 app.get("/", (req, res) => {
-  res.render('index', { rootUrl: process.env.ROOT_URL || "http://localhost:3000" });
+  res.render('index', { rootUrl: process.env.ROOT_URL || "http://localhost:3000", table: TABLE_NAME });
 });
 
 app.post("/insert", (req, res) => { 
@@ -49,7 +51,7 @@ app.post("/insert", (req, res) => {
       data: req.body.data,
       metadata: req.body.metadata,
       embedMeta: req.body.embedMeta,
-      tableName: "schema" // TODO: change this to a variable
+      tableName: TABLE_NAME // TODO: change this to a variable
     })
   })
     .then((response) => response.json())
@@ -67,12 +69,13 @@ app.post("/insert", (req, res) => {
 });
 
 app.post("/wander", (req, res) => {
+  console.log(req.body);
   fetch(RANDOM_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ n: req.body.n, tableName: "schema" }),
+    body: JSON.stringify({ n: req.body.n, tableName: TABLE_NAME }),
   })
     .then((response) => response.json())
     .then((data) => {
