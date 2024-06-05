@@ -181,6 +181,13 @@
             // footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
           }
 
+          // if metadata thoughts exists, add it as a p tag
+          if (value.content.metadata.thoughts) {
+            const thoughts = document.createElement("p");
+            thoughts.innerText = value.content.metadata.thoughts;
+            node.appendChild(thoughts);
+          }
+
           // Append blockquote and footer to the node
           node.appendChild(blockquote);
           node.appendChild(br);
