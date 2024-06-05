@@ -89,6 +89,8 @@ app.post("/wander", (req, res) => {
     });
 })
 
+const LIMIT = 2;
+
 // post body.text to the server
 app.post("/query", (req, res) => {
   const { text, source, filter, table } = req.body;
@@ -106,7 +108,8 @@ app.post("/query", (req, res) => {
     qBody = {
       query: text,
       filter: filter,
-      table: table
+      table: table,
+      limit: LIMIT
     }
   }
   
