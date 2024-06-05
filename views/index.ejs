@@ -522,6 +522,18 @@
       },
     });
 
+    quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
+      let ops = [];
+      delta.ops.forEach((op) => {
+        if (op.insert && typeof op.insert === "string") {
+          ops.push({
+            insert: op.insert,
+          });
+        }
+      });
+      delta.ops = ops;
+      return delta;
+    });
     // whenever text is changed log all the button ids
     quill.on("text-change", function (delta, oldDelta, source) {
       const buttonIds = [];
