@@ -81,7 +81,26 @@
       <!-- table name input field default value = schema from ejs -->
       <label>
         <span>Table Name</span>
-        <input type="text" name="table-name" value="<%= table %>" /> <!-- default value is schema_2 for local tests -->
+        <input type="text" name="table-name" value="<%= table %>" />
+        <!-- default value is schema_2 for local tests -->
+      </label>
+      <button type="submit">Save</button>
+    </form>
+  </dialog>
+
+  <dialog id="customDialog">
+    <form method="dialog">
+      <label>
+        <span>Author</span>
+        <input type="text" id="author" name="author" value="" />
+      </label>
+      <label>
+        <span>Title</span>
+        <input type="text" id="title" name="title" value="" />
+      </label>
+      <label>
+        <span>Thoughts</span>
+        <input type="text" id="thoughts" name="thoughts" value="" />
       </label>
       <button type="submit">Save</button>
     </form>
@@ -135,7 +154,11 @@
     class EditableSpan extends Inline {
       static create(value) {
         console.log(value);
-        if (value.content === undefined || value.content === null || value.content === "") {
+        if (
+          value.content === undefined ||
+          value.content === null ||
+          value.content === ""
+        ) {
           console.error("Content is empty");
           return;
         }
@@ -155,9 +178,8 @@
             footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author}`; // Set the text inside footer
           } else {
             footer.innerText = `-- ${value.content.metadata.title} by ${value.content.metadata.author} (Class of ${value.content.metadata.class})`; // Set the text inside footer
-          // footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
+            // footer.innerText = `-- ${value.content.metadata.url} by ${value.content.metadata.screen_name}`; // Set the text inside footer
           }
-          
 
           // Append blockquote and footer to the node
           node.appendChild(blockquote);
@@ -207,7 +229,6 @@
 
     class BoxHTML extends BlockEmbed {
       static create(value) {
-       
         let node = super.create();
         node.setAttribute("id", value.id); // Set the ID attribute
         node.setAttribute("data-text", value.content); // Set the data-text attribute
@@ -280,7 +301,12 @@
                   length: range.length,
                 };
                 // highlight the selected text as pale yellow
-                quill.formatText(range.index, range.length, "background", "#ffffbf"); 
+                quill.formatText(
+                  range.index,
+                  range.length,
+                  "background",
+                  "#ffffbf"
+                );
               }
 
               const table = document.querySelector(
@@ -357,13 +383,11 @@
                         "$1"
                       );
 
-
-
                       const citationStr =
                         `-- ${da.metadata.title} by ${da.metadata.author}`.trim();
 
                       const encodedText = encodeTextToHtml(textNoSpan);
-    
+
                       if (citationText.trim() === citationStr) {
                         console.log(`BQ`);
                         console.log(blockquoteText);
@@ -396,20 +420,24 @@
                     const cursor = quill.getSelection().index;
                     const parent = quill.getLeaf(cursor)[0].parent;
                     // special case if parent is blockquote and right under is another blockquote
-                
-                    if (userSelectedParent.domNode.tagName === "BLOCKQUOTE" || (userSelectedParent.domNode.tagName === "SPAN" && userSelectedParent.domNode.parentElement.tagName === "BLOCKQUOTE")) {
+
+                    if (
+                      userSelectedParent.domNode.tagName === "BLOCKQUOTE" ||
+                      (userSelectedParent.domNode.tagName === "SPAN" &&
+                        userSelectedParent.domNode.parentElement.tagName ===
+                          "BLOCKQUOTE")
+                    ) {
                       console.log("parent is blockquote");
                       let next = userSelectedParent.next;
                       if (next == null) {
                         next = userSelectedParent.parent.next;
                       }
-                      console.log(next);
+
                       if (next && next.domNode.tagName === "BLOCKQUOTE") {
                         // add offset of span highlight
                         // const lenOfSpan = `<span style="background-color: rgb(255, 255, 191);> </span>`.length;
 
-
-                        // insert after next 
+                        // insert after next
                         quill.insertEmbed(
                           next.offset() + next.length() + 1,
                           "editableSpan",
@@ -421,7 +449,7 @@
                         console.log("next is span");
                         const nextNext = next.offset() + next.length() + 1;
                         console.log(nextNext);
-                        // insert after next 
+                        // insert after next
                         quill.insertEmbed(
                           next.offset() + next.length() + 1,
                           "editableSpan",
@@ -431,14 +459,21 @@
                         quill.setSelection(next.offset() + next.length() + 1);
                       } else {
                         // insert at end of quill
-                        quill.insertText(quill.getLength(), " ", Quill.sources.USER);
+                        quill.insertText(
+                          quill.getLength(),
+                          " ",
+                          Quill.sources.USER
+                        );
                         quill.insertEmbed(
                           quill.getLength(),
                           "editableSpan",
                           { id: `${id}`, content: da },
                           Quill.sources.USER
                         );
-                        quill.setSelection(quill.getLength(), Quill.sources.SILENT);
+                        quill.setSelection(
+                          quill.getLength(),
+                          Quill.sources.SILENT
+                        );
                       }
                     } else {
                       const parentIndex = quill.getIndex(parent);
@@ -463,11 +498,12 @@
                         }
                       }
 
-                      quill.setSelection(parentEnd + 1 + offset, Quill.sources.SILENT);
-
+                      quill.setSelection(
+                        parentEnd + 1 + offset,
+                        Quill.sources.SILENT
+                      );
                     }
                   });
-                  
                 })
                 .catch((err) => {
                   hideLoading();
@@ -724,38 +760,52 @@
         quill.formatText(range.index, range.length, "background", "#c8f7c5");
       }
 
-      // create a dialog form to get name of author
-      const author = prompt("Enter the name of the author", lastAuthor);
-      const title = prompt("Enter the title of the text", lastTitle);
+      const dialog = document.getElementById("customDialog");
+      dialog.showModal();
 
-      lastAuthor = author;
-      lastTitle = title;
+      dialog.querySelector("form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        dialog.close();
 
-      showLoading();
-      fetch("<%= rootUrl %>/insert", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          data: text,
-          metadata: {
-            title: title,
-            author: author,
+        const author = document.getElementById("author").value;
+        const title = document.getElementById("title").value;
+        const thoughts = document.getElementById("thoughts").value;
+        console.log(author, title, thoughts);
+        lastAuthor = author;
+        lastTitle = title;
+
+        showLoading();
+        fetch("<%= rootUrl %>/insert", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-          embedMeta: false,
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          hideLoading();
-          alert("Successfully embedded text into Commonbase");
-          console.log(data);
+          body: JSON.stringify({
+            data: text,
+            metadata: {
+              title: title,
+              author: author,
+              thoughts: thoughts || "",
+            },
+            embedMeta: false,
+          }),
         })
-        .catch((err) => {
-          hideLoading();
-          console.error(err);
-        });
+          .then((res) => res.json())
+          .then((data) => {
+            hideLoading();
+            alert("Successfully embedded text into Commonbase");
+            console.log(data);
+          })
+          .catch((err) => {
+            hideLoading();
+            console.error(err);
+          });
+      });
+
+      // create a dialog form to get name of author and thoughts
+      // const author = prompt("Enter the name of the author", lastAuthor);
+      // const title = prompt("Enter the title of the text", lastTitle);
+      // const thoughts = prompt("Enter your thoughts on the text", "");
     };
 
     buttonContainer.appendChild(embedButton);
@@ -877,7 +927,6 @@
     selectedTable.innerHTML = `Selected Table: ${table}`;
     selectedTable.style.fontSize = "13px";
     buttonContainer.appendChild(selectedTable);
-
 
     const loadingWheel = document.createElement("div");
     loadingWheel.id = "loading-wheel";
