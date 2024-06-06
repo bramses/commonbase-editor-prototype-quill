@@ -766,6 +766,7 @@
 
     let lastAuthor = "Anonymous";
     let lastTitle = "Untitled";
+    const embeddedAlready = [];
 
     embedButton.onclick = () => {
       const range = quill.getSelection(true);
@@ -786,9 +787,14 @@
         event.preventDefault();
         dialog.close();
 
+        if (embeddedAlready.includes(text)) {
+          return;
+        }
+
         const author = document.getElementById("author").value;
         const title = document.getElementById("title").value;
         const thoughts = document.getElementById("thoughts").value;
+        console.log("inseting record into commonbase " + text);
         console.log(author, title, thoughts);
         lastAuthor = author;
         lastTitle = title;
@@ -813,6 +819,7 @@
           .then((data) => {
             hideLoading();
             alert("Successfully embedded text into Commonbase");
+            embeddedAlready.push(text);
             console.log(data);
           })
           .catch((err) => {
