@@ -483,9 +483,16 @@
                         );
                       }
                     } else {
-                      const parentIndex = quill.getIndex(parent);
-                      const parentLength = parent.length();
-                      const parentEnd = parentIndex + parentLength;
+                      let parentIndex = quill.getIndex(parent);
+                      let parentLength = parent.length();
+                      let parentEnd = parentIndex + parentLength;
+
+                      // if parent is span, get parent of parent
+                      if (parent.domNode.tagName === "SPAN") {
+                        parentIndex = quill.getIndex(parent.parent);
+                        parentLength = parent.parent.length();
+                        parentEnd = parentIndex + parentLength;
+                      }
 
                       // insert at end of quill
                       console.log("inserting at end " + text);
