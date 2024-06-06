@@ -89,7 +89,7 @@ app.post("/wander", (req, res) => {
     });
 })
 
-const LIMIT = 3;
+const LIMIT = 2;
 
 // post body.text to the server
 app.post("/query", (req, res) => {

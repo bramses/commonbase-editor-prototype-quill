@@ -503,6 +503,7 @@
                         { id: `${id}`, content: da },
                         Quill.sources.USER
                       );
+                      // offset = 0;
                       // iterate through rs and get length of text by reducing r.insert
                       // set cursor to end of data
                       for (let i = 0; i < rs.ops.length; i++) {
@@ -512,6 +513,7 @@
                         }
                       }
 
+                      // TODOL still bugged
                       quill.setSelection(
                         parentEnd + 1 + offset,
                         Quill.sources.SILENT
